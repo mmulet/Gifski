@@ -10,10 +10,11 @@ import AVFoundation
 
 @Observable
 final class PreviewGenerator {
+	@MainActor
 	var previewImage: NSImage?
 
 	private var previewImageCommand: PreviewCommand?
-
+	@MainActor
 	var imageBeingGeneratedNow = false
 
 	private var commandStream = LatestCommandAsyncStream()
@@ -30,14 +31,25 @@ final class PreviewGenerator {
 					 */
 					continue
 				}
-				self.imageBeingGeneratedNow = true
-
-				defer {
-					self.imageBeingGeneratedNow = false
+				Task {
+					@MainActor in
+					self.imageBeingGeneratedNow = true
 				}
-				self.previewImage = await generatePreviewImage(
+				defer {
+					Task {
+						@MainActor in
+
+						self.imageBeingGeneratedNow = false
+					}
+				}
+				let data = await generatePreviewImage(
 					previewCommand: item.command
 				)
+				Task {
+					@MainActor in
+					self.previewImage = data?.toPreviewImage()
+				}
+
 				self.previewImageCommand = previewImageCommand
 			}
 		}
@@ -47,6 +59,43 @@ final class PreviewGenerator {
 	func generatePreview(command: PreviewCommand)  {
 		self.commandStream.add(command)
 	}
+
+	/**
+	 NSImages are not Sendable so we will
+	 just send the Data to the main thread
+	 and create the image there
+	 */
+	private struct PreviewImageData: Sendable {
+		private var imageData: Data
+		private var type: ImageDataType
+
+		init(imageData: Data, type: ImageDataType){
+			self.imageData = imageData
+			self.type = type
+		}
+
+		fileprivate enum ImageDataType {
+			case stillImage
+			case animatedGIF
+		}
+
+		func toPreviewImage() -> NSImage?{
+			let image: NSImage
+			switch type {
+			case .animatedGIF:
+				image = NSImage(data: imageData) ?? NSImage()
+			case .stillImage:
+				guard let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
+					  let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+					return nil
+				}
+				image = NSImage(cgImage: cgImage, size: .zero)
+			}
+			return image
+		}
+	}
+
+
 
 
 	struct PreviewCommand: Sendable, Equatable {
@@ -67,7 +116,7 @@ final class PreviewGenerator {
 	 */
 	private func generatePreviewImage(
 		previewCommand: PreviewCommand
-	) async -> NSImage? {
+	) async -> PreviewImageData? {
 		switch previewCommand.whatToGenerate {
 		case .entireAnimation:
 			let data = try? await GIFGenerator.run(previewCommand.settingsAtGenerateTime) { _ in
@@ -79,7 +128,7 @@ final class PreviewGenerator {
 				   else {
 				return nil
 			}
-			return NSImage(data: data)
+			return .init(imageData: data, type: .animatedGIF)
 		case .oneFrame(let previewTimeToGenerate):
 			guard let frameRange = previewCommand.settingsAtGenerateTime.timeRange else {
 				/**
@@ -130,12 +179,10 @@ final class PreviewGenerator {
 				 no-op
 				 */
 			}
-			guard let data,
-				  let imageSource = CGImageSourceCreateWithData(data as CFData, nil),
-				  let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+			guard let data else {
 				return nil
 			}
-			return NSImage(cgImage: cgImage, size: .zero)
+			return .init(imageData: data, type: .stillImage)
 		}
 	}
 

@@ -3006,6 +3006,37 @@ extension AVPlayer {
 			toleranceAfter: .zero
 		)
 	}
+
+
+	func timeStream(forInterval duration: Duration = .seconds(1_000_000.0), queue: DispatchQueue = .global(qos: .utility)) -> AsyncStream<Duration> {
+		AsyncStream { continuation in
+			/**
+			 https://developer.apple.com/documentation/avfoundation/monitoring-playback-progress-in-your-app
+			 This is where we keep track of how the user scrubbed on the timeline
+
+			 Notice that the interval it set to a large value
+			 This means that it will provide a callback in 2 cases.
+			 1. On loop, in which case it will show the first frame (or last
+			 if you have bounce enabled)
+			 2. When manually scrubbing. In which case it will show
+			 the frame you click on
+
+			 You can set this to a lower interval (like 0.1) for a live preview
+			 but performance will suffer
+			 */
+			let periodicTimeObserver = addPeriodicTimeObserver(
+				forInterval: CMTime(seconds: duration.toTimeInterval, preferredTimescale: CMTimeScale(NSEC_PER_SEC)),
+				queue: queue
+			)
+			{ time in
+				continuation.yield(Duration.seconds(time.seconds))
+			}
+
+			continuation.onTermination = { _ in
+				self.removeTimeObserver(periodicTimeObserver)
+			}
+		}
+	}
 }
 
 

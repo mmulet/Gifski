@@ -227,43 +227,17 @@ final class TrimmingAVPlayerViewController: NSViewController {
 				}
 
 				let shouldShowAnimation = newRate != 0
-				Task {
-					@MainActor in
-					if shouldShowAnimation {
-						self.previewViewState.previewImage = self.previewAnimation
-					} else {
-						self.previewViewState.previewImage = self.previewImage
-					}
+
+				if shouldShowAnimation {
+					self.previewViewState.previewImage = self.previewAnimation
+				} else {
+					self.previewViewState.previewImage = self.previewImage
 				}
 			}
-
-
-		/**
-		 https://developer.apple.com/documentation/avfoundation/monitoring-playback-progress-in-your-app
-		 This is where we keep track of how the user scrubbed on the timeline
-
-		 Notice that the interval it set to a large value
-		 This means that it will provide a callback in 2 cases.
-		 1. On loop, in which case it will show the first frame (or last
-		 if you have bounce enabled)
-		 2. When manually scrubbing. In which case it will show
-		 the frame you click on
-
-		 You can set this to a lower interval (like 0.1) for a live preview
-		 but performance will suffer
-		 */
-		self.periodicTimeObserver = self.player.addPeriodicTimeObserver(
-			forInterval: CMTime(seconds: 1_000_000.0, preferredTimescale: 600),
-			queue: .main
-		)
-		{ [weak self] time in
-		   guard let self else {
-			   return
-		   }
-			guard let currentTimeDidChangeCallback = self.currentTimeDidChange else {
-				return
+		Task {
+			for await time in  self.player.timeStream() {
+				self.currentTimeDidChange?(time.toTimeInterval)
 			}
-			currentTimeDidChangeCallback(time.seconds)
 		}
 	}
 
@@ -322,6 +296,8 @@ final class TrimmingAVPlayerViewController: NSViewController {
 			.store(in: &cancellables)
 	}
 }
+
+
 
 final class TrimmingAVPlayerView: AVPlayerView {
 	private var timeRangeCancellable: AnyCancellable?
