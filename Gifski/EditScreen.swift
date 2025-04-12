@@ -23,12 +23,8 @@ struct EditScreen: View {
 
 	@State private var currentScrubbedTime: Double = .zero
 	@State private var showPreview = false
-	@State private var singleFramePreviewGenerator = PreviewGenerator(
-		type: .singleFrame
-	)
-	@State private var fullAnimationPreviewGenerator = PreviewGenerator(
-		type: .entireAnimation
-	)
+	@State private var singleFramePreviewGenerator = PreviewGenerator()
+	@State private var fullAnimationPreviewGenerator = PreviewGenerator()
 
 	init(
 		url: URL,
@@ -49,10 +45,9 @@ struct EditScreen: View {
 				loopPlayback: loopGIF,
 				bouncePlayback: bounceGIF,
 				showPreview: showPreview,
-				// EditScreen + PreviewGenerator
 				currentTimeDidChange: self.onCurrentTimeDidChange,
-				previewImage: singleFramePreviewGenerator.previewImage?.image,
-				previewAnimation: fullAnimationPreviewGenerator.previewImage?.image,
+				previewImage: singleFramePreviewGenerator.previewImage,
+				previewAnimation: fullAnimationPreviewGenerator.previewImage,
 				animationBeingGeneratedNow: fullAnimationPreviewGenerator.imageBeingGeneratedNow
 			) { timeRange in
 				DispatchQueue.main.async {
@@ -108,11 +103,15 @@ struct EditScreen: View {
 				return
 			}
 
-			/**
-			 Force a redraw of the preview
-			 */
-			onCurrentTimeDidChange(currentTime: self.currentScrubbedTime)
-			self.fullAnimationPreviewGenerator.onSettingsDidChangeGeneratePreview(conversionSettings: conversionSettings)
+			singleFramePreviewGenerator.generatePreview(command: .init(
+				whatToGenerate: .oneFrame(atTime: currentScrubbedTime),
+				settingsAtGenerateTime: conversionSettings
+			))
+
+			fullAnimationPreviewGenerator.generatePreview(command: .init(
+				whatToGenerate: .entireAnimation,
+				settingsAtGenerateTime: conversionSettings
+			))
 		}
 		.alert2(
 			"Reverse Playback Preview Limitation",
@@ -667,8 +666,15 @@ extension EditScreen {
 		guard showPreview else {
 			return
 		}
-		singleFramePreviewGenerator.onSettingsDidChangeGeneratePreview(conversionSettings: self.conversionSettings)
-		fullAnimationPreviewGenerator.onSettingsDidChangeGeneratePreview(conversionSettings: self.conversionSettings)
+
+		singleFramePreviewGenerator.generatePreview(command: .init(
+			whatToGenerate: .oneFrame(atTime: self.currentScrubbedTime),
+			settingsAtGenerateTime: self.conversionSettings
+		))
+		fullAnimationPreviewGenerator.generatePreview(command: .init(
+			whatToGenerate: .entireAnimation,
+			settingsAtGenerateTime: self.conversionSettings
+		))
 	}
 
 	private func onCurrentTimeDidChange(currentTime: Double) {
@@ -676,10 +682,9 @@ extension EditScreen {
 		guard showPreview else {
 			return
 		}
-
-		self.singleFramePreviewGenerator.onCurrentTimeDidChange(
-			currentTime: currentTime,
-			conversionSettings: conversionSettings
-		)
+		singleFramePreviewGenerator.generatePreview(command: .init(
+			whatToGenerate: .oneFrame(atTime: currentTime),
+			settingsAtGenerateTime: self.conversionSettings
+		))
 	}
 }
