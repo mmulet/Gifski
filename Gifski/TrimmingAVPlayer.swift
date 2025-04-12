@@ -201,7 +201,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 		super.init(nibName: nil, bundle: nil)
 
-
+		var previousRate: Float = 0.0
 		rateObserver = player
 			.publisher(for: \.rate)
 			.receive(on: DispatchQueue.main)
@@ -209,6 +209,10 @@ final class TrimmingAVPlayerViewController: NSViewController {
 				guard let self else {
 					return
 				}
+				defer {
+					previousRate = newRate
+				}
+
 				guard self.showPreview else {
 					return
 				}
@@ -219,10 +223,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 						return
 					}
 					self.player.rate = 0
-					Task {
-						@MainActor in
-						self.previewViewState.previewImage = self.previewImage
-					}
+					self.previewViewState.previewImage = self.previewImage
 					return
 				}
 
@@ -230,6 +231,9 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 				if shouldShowAnimation {
 					self.previewViewState.previewImage = self.previewAnimation
+					if newRate > 0 && previousRate == 0 {
+						self.player.seekToStart()
+					}
 				} else {
 					self.previewViewState.previewImage = self.previewImage
 				}

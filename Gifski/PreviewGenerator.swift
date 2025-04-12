@@ -128,6 +128,11 @@ final class PreviewGenerator {
 				   else {
 				return nil
 			}
+			let asset = await createAVAssetFromGif(data: data, previewCommand: previewCommand)
+
+
+
+			print("didn't crash")
 			return .init(imageData: data, type: .animatedGIF)
 		case .oneFrame(let previewTimeToGenerate):
 			guard let frameRange = previewCommand.settingsAtGenerateTime.timeRange else {
@@ -218,5 +223,113 @@ final class PreviewGenerator {
 		func makeAsyncIterator() -> AsyncStream<SequencedPreviewCommand>.Iterator {
 			stream.makeAsyncIterator()
 		}
+	}
+
+	private func createAVAssetFromGif(data: Data, previewCommand: PreviewCommand) async -> AVAsset? {
+		guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
+			return nil
+		}
+		let numberOfImagesCount = CGImageSourceGetCount(imageSource)
+		guard numberOfImagesCount > 0 else {
+			return nil
+		}
+		guard let firstCGImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+			return nil
+		}
+		let tempPath = FileManager.default.temporaryDirectory.appending(component: "output.move")
+		guard let assetWriter = try? AVAssetWriter(outputURL: tempPath, fileType: .mov) else {
+			return nil
+		}
+
+		let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
+			AVVideoCodecKey: AVVideoCodecType.proRes4444,
+			AVVideoWidthKey: firstCGImage.width,
+			AVVideoHeightKey: firstCGImage.height
+		])
+		writerInput.expectsMediaDataInRealTime = false
+		let pixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor(
+			assetWriterInput: writerInput,
+			sourcePixelBufferAttributes: [
+				kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+				kCVPixelBufferWidthKey as String: firstCGImage.width,
+				kCVPixelBufferHeightKey as String: firstCGImage.height
+			]
+		)
+		guard assetWriter.canAdd(writerInput) else {
+			return nil
+		}
+		assetWriter.add(writerInput)
+
+		assetWriter.startWriting()
+		assetWriter.startSession(atSourceTime: .zero)
+
+		let dispatchQueue = DispatchQueue(label: "com.gifski.assetWriterQueue")
+		var frameIndex = 0
+
+		let frameRate: CMTimeScale
+		if let settingFrameRate = previewCommand.settingsAtGenerateTime.frameRate {
+			frameRate = CMTimeScale(settingFrameRate)
+		} else if let inputFrameRaate = try? await previewCommand.settingsAtGenerateTime.asset.frameRate {
+			frameRate = CMTimeScale(inputFrameRaate)
+		} else {
+			frameRate = CMTimeScale(30.0)
+		}
+
+
+		let dataReadyStream = AsyncStream { continuation in
+			writerInput.requestMediaDataWhenReady(on: dispatchQueue) {
+				continuation.yield()
+			}
+		}
+		for await _ in dataReadyStream {
+			while writerInput.isReadyForMoreMediaData && frameIndex < numberOfImagesCount {
+				defer {
+					frameIndex += 1
+				}
+				guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, frameIndex, nil) else {
+					continue
+				}
+				guard let pixelBufferPool = pixelBufferAdaptor.pixelBufferPool else {
+					continue
+				}
+				var pixelBuffer: CVPixelBuffer?
+				guard CVPixelBufferPoolCreatePixelBuffer(nil, pixelBufferPool, &pixelBuffer) == kCVReturnSuccess,
+					  let pixelBuffer else {
+					continue
+				}
+				CVPixelBufferLockBaseAddress(pixelBuffer, [])
+				defer {
+					CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
+				}
+				guard let context = CGContext(
+					data: CVPixelBufferGetBaseAddress(pixelBuffer),
+					width: cgImage.width,
+					height: cgImage.height,
+					bitsPerComponent: 8,
+					bytesPerRow: CVPixelBufferGetBytesPerRow(pixelBuffer),
+					space: CGColorSpaceCreateDeviceRGB(),
+					bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue
+				) else {
+					continue
+				}
+				context.draw(cgImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
+				let presentationTime = CMTime(
+					value: CMTimeValue(frameIndex),
+					timescale: frameRate
+				)
+				pixelBufferAdaptor.append(pixelBuffer, withPresentationTime: presentationTime)
+			}
+			if frameIndex >= numberOfImagesCount {
+				break
+			}
+		}
+
+		writerInput.markAsFinished()
+		await withCheckedContinuation { continuation in
+			assetWriter.finishWriting {
+				continuation.resume()
+			}
+		}
+		return AVURLAsset(url: tempPath)
 	}
 }
