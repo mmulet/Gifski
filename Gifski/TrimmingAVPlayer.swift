@@ -13,7 +13,6 @@ struct TrimmingAVPlayer: NSViewControllerRepresentable {
 	var showPreview = false
 	var currentTimeDidChange: ((Double) -> Void)?
 	var previewImage: NSImage?
-	var previewAnimation: NSImage?
 	var animationBeingGeneratedNow = false
 
 	var timeRangeDidChange: ((ClosedRange<Double>) -> Void)?
@@ -37,7 +36,6 @@ struct TrimmingAVPlayer: NSViewControllerRepresentable {
 		nsViewController.player.defaultRate = Float(speed)
 		nsViewController.showPreview = showPreview
 		nsViewController.animationBeingGeneratedNow = animationBeingGeneratedNow
-		nsViewController.previewAnimation = previewAnimation
 		nsViewController.previewImage = previewImage
 
 		if nsViewController.player.rate != 0 {
@@ -65,22 +63,6 @@ final class TrimmingAVPlayerViewController: NSViewController {
 	private var rateObserver: AnyCancellable?
 	@MainActor
 	var previewViewState = PreviewViewState(previewImage: nil)
-
-	fileprivate var previewAnimation: NSImage? {
-		didSet {
-			/**
-			Only update the previewImage if we are
-			playing
-			 */
-			guard player.rate != 0 else {
-				return
-			}
-			Task{
-				@MainActor in
-				self.previewViewState.previewImage = self.previewAnimation
-			}
-		}
-	}
 
 	fileprivate var previewImage: NSImage? {
 		didSet {
@@ -201,7 +183,6 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 		super.init(nibName: nil, bundle: nil)
 
-		var previousRate: Float = 0.0
 		rateObserver = player
 			.publisher(for: \.rate)
 			.receive(on: DispatchQueue.main)
@@ -209,34 +190,11 @@ final class TrimmingAVPlayerViewController: NSViewController {
 				guard let self else {
 					return
 				}
-				defer {
-					previousRate = newRate
-				}
-
 				guard self.showPreview else {
 					return
 				}
-				// If animation is being generated, show the preview image
-				if self.animationBeingGeneratedNow {
-					// Avoid infinite loop: stop the player if rate is already 0
-					guard newRate != 0 else {
-						return
-					}
-					self.player.rate = 0
-					self.previewViewState.previewImage = self.previewImage
-					return
-				}
+				self.previewViewState.previewImage = self.previewImage
 
-				let shouldShowAnimation = newRate != 0
-
-				if shouldShowAnimation {
-					self.previewViewState.previewImage = self.previewAnimation
-					if newRate > 0 && previousRate == 0 {
-						self.player.seekToStart()
-					}
-				} else {
-					self.previewViewState.previewImage = self.previewImage
-				}
 			}
 		Task {
 			for await time in  self.player.timeStream() {

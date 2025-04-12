@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import AVKit
 
 @MainActor
 final class PreviewViewState: ObservableObject {
 	@Published var previewImage: NSImage?
+
 	init(previewImage: NSImage? = nil) {
 		self.previewImage = previewImage
 	}

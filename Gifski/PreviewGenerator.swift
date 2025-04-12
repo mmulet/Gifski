@@ -13,6 +13,9 @@ final class PreviewGenerator {
 	@MainActor
 	var previewImage: NSImage?
 
+	@MainActor
+	var previewAsset: AVAsset?
+
 	private var previewImageCommand: PreviewCommand?
 	@MainActor
 	var imageBeingGeneratedNow = false
@@ -31,6 +34,13 @@ final class PreviewGenerator {
 					 */
 					continue
 				}
+				if item.command.whatToGenerate == .entireAnimation {
+					print("old")
+					print(previewImageCommand?.settingsAtGenerateTime)
+					print("new")
+					print(item.command.settingsAtGenerateTime)
+				}
+
 				Task {
 					@MainActor in
 					self.imageBeingGeneratedNow = true
@@ -47,10 +57,18 @@ final class PreviewGenerator {
 				)
 				Task {
 					@MainActor in
-					self.previewImage = data?.toPreviewImage()
+
+					switch data {
+					case .imageData:
+						self.previewImage = data?.toPreviewImage()
+					case .asset:
+						self.previewAsset = data?.toPreviewAVAsset()
+					case .none:
+						return
+					}
 				}
 
-				self.previewImageCommand = previewImageCommand
+				self.previewImageCommand = item.command
 			}
 		}
 	}
@@ -60,38 +78,65 @@ final class PreviewGenerator {
 		self.commandStream.add(command)
 	}
 
-	/**
-	 NSImages are not Sendable so we will
-	 just send the Data to the main thread
-	 and create the image there
-	 */
-	private struct PreviewImageData: Sendable {
-		private var imageData: Data
-		private var type: ImageDataType
+//	/**
+//	 NSImages are not Sendable so we will
+//	 just send the Data to the main thread
+//	 and create the image there
+//	 */
+//	private struct PreviewImageData: Sendable {
+//		private var imageData: Data
+//		private var type: ImageDataType
+//
+//		init(imageData: Data, type: ImageDataType){
+//			self.imageData = imageData
+//			self.type = type
+//		}
+//
+//		fileprivate enum ImageDataType {
+//			case stillImage
+//			case animatedGIF
+//		}
+//
+//		func toPreviewImage() -> NSImage?{
+//			let image: NSImage
+//			switch type {
+//			case .animatedGIF:
+//				image = NSImage(data: imageData) ?? NSImage()
+//			case .stillImage:
+//				guard let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
+//					  let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+//					return nil
+//				}
+//				image = NSImage(cgImage: cgImage, size: .zero)
+//			}
+//			return image
+//		}
+//	}
 
-		init(imageData: Data, type: ImageDataType){
-			self.imageData = imageData
-			self.type = type
-		}
+	private enum PreviewImageData: Sendable {
+		case imageData(Data)
+		case asset(URL)
 
-		fileprivate enum ImageDataType {
-			case stillImage
-			case animatedGIF
+		func toPreviewAVAsset() -> AVAsset? {
+			switch self {
+			case .imageData:
+				return nil
+			case .asset(let url):
+				return AVURLAsset(url: url)
+			}
 		}
 
 		func toPreviewImage() -> NSImage?{
-			let image: NSImage
-			switch type {
-			case .animatedGIF:
-				image = NSImage(data: imageData) ?? NSImage()
-			case .stillImage:
+			switch self {
+			case .asset:
+				return nil
+			case .imageData(let imageData):
 				guard let imageSource = CGImageSourceCreateWithData(imageData as CFData, nil),
 					  let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
 					return nil
 				}
-				image = NSImage(cgImage: cgImage, size: .zero)
+				return NSImage(cgImage: cgImage, size: .zero)
 			}
-			return image
 		}
 	}
 
@@ -128,12 +173,12 @@ final class PreviewGenerator {
 				   else {
 				return nil
 			}
-			let asset = await createAVAssetFromGif(data: data, previewCommand: previewCommand)
+			guard let asset = await createAVAssetFromGif(data: data, previewCommand: previewCommand) else {
+				return nil
+			}
+			return .asset(asset)
 
-
-
-			print("didn't crash")
-			return .init(imageData: data, type: .animatedGIF)
+//			return .init(imageData: data, type: .animatedGIF)
 		case .oneFrame(let previewTimeToGenerate):
 			guard let frameRange = previewCommand.settingsAtGenerateTime.timeRange else {
 				/**
@@ -187,7 +232,8 @@ final class PreviewGenerator {
 			guard let data else {
 				return nil
 			}
-			return .init(imageData: data, type: .stillImage)
+			return .imageData(data)
+//			return .init(imageData: data, type: .stillImage)
 		}
 	}
 
@@ -225,7 +271,7 @@ final class PreviewGenerator {
 		}
 	}
 
-	private func createAVAssetFromGif(data: Data, previewCommand: PreviewCommand) async -> AVAsset? {
+	private func createAVAssetFromGif(data: Data, previewCommand: PreviewCommand) async -> URL? {
 		guard let imageSource = CGImageSourceCreateWithData(data as CFData, nil) else {
 			return nil
 		}
@@ -236,13 +282,13 @@ final class PreviewGenerator {
 		guard let firstCGImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
 			return nil
 		}
-		let tempPath = FileManager.default.temporaryDirectory.appending(component: "output.move")
+		let tempPath = FileManager.default.temporaryDirectory.appending(component: "\(UUID()).mov")
 		guard let assetWriter = try? AVAssetWriter(outputURL: tempPath, fileType: .mov) else {
 			return nil
 		}
 
 		let writerInput = AVAssetWriterInput(mediaType: .video, outputSettings: [
-			AVVideoCodecKey: AVVideoCodecType.proRes4444,
+			AVVideoCodecKey: AVVideoCodecType.h264,
 			AVVideoWidthKey: firstCGImage.width,
 			AVVideoHeightKey: firstCGImage.height
 		])
@@ -330,6 +376,6 @@ final class PreviewGenerator {
 				continuation.resume()
 			}
 		}
-		return AVURLAsset(url: tempPath)
+		return tempPath
 	}
 }

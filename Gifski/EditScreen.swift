@@ -37,9 +37,16 @@ struct EditScreen: View {
 		self._metadata = .init(wrappedValue: metadata)
 	}
 
-	var body: some View {
-		VStack {
-			// TODO: Move the trimmer outside the video view.
+	var bob : some View {
+		if showPreview && !fullAnimationPreviewGenerator.imageBeingGeneratedNow && fullAnimationPreviewGenerator.previewAsset != nil {
+			TrimmingAVPlayer(
+				asset: fullAnimationPreviewGenerator.previewAsset!
+			) { timeRange in
+				DispatchQueue.main.async {
+					self.timeRange = timeRange
+				}
+			}
+		} else {
 			TrimmingAVPlayer(
 				asset: modifiedAsset,
 				loopPlayback: loopGIF,
@@ -47,13 +54,20 @@ struct EditScreen: View {
 				showPreview: showPreview,
 				currentTimeDidChange: self.onCurrentTimeDidChange,
 				previewImage: singleFramePreviewGenerator.previewImage,
-				previewAnimation: fullAnimationPreviewGenerator.previewImage,
 				animationBeingGeneratedNow: fullAnimationPreviewGenerator.imageBeingGeneratedNow
 			) { timeRange in
 				DispatchQueue.main.async {
 					self.timeRange = timeRange
 				}
 			}
+		}
+	}
+
+	var body: some View {
+		VStack {
+			// TODO: Move the trimmer outside the video view.
+
+			bob
 			controls
 			bottomBar
 		}
@@ -107,7 +121,7 @@ struct EditScreen: View {
 				whatToGenerate: .oneFrame(atTime: currentScrubbedTime),
 				settingsAtGenerateTime: conversionSettings
 			))
-
+			print("show prview set generatra aniomation")
 			fullAnimationPreviewGenerator.generatePreview(command: .init(
 				whatToGenerate: .entireAnimation,
 				settingsAtGenerateTime: conversionSettings
@@ -671,6 +685,7 @@ extension EditScreen {
 			whatToGenerate: .oneFrame(atTime: self.currentScrubbedTime),
 			settingsAtGenerateTime: self.conversionSettings
 		))
+		print("settings did change gen preview now")
 		fullAnimationPreviewGenerator.generatePreview(command: .init(
 			whatToGenerate: .entireAnimation,
 			settingsAtGenerateTime: self.conversionSettings
