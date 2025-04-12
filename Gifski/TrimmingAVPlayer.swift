@@ -9,13 +9,13 @@ struct TrimmingAVPlayer: NSViewControllerRepresentable {
 	var loopPlayback = false
 	var bouncePlayback = false
 	var speed = 1.0
-	// TrimmingAVPlayer + PreviewGenerator
+
 	var showPreview = false
 	var currentTimeDidChange: ((Double) -> Void)?
 	var previewImage: NSImage?
 	var previewAnimation: NSImage?
 	var animationBeingGeneratedNow = false
-	// end TrimmingAVPlayer + PreviewGenerator
+
 	var timeRangeDidChange: ((ClosedRange<Double>) -> Void)?
 
 	func makeNSViewController(context: Context) -> NSViewControllerType {
@@ -40,8 +40,6 @@ struct TrimmingAVPlayer: NSViewControllerRepresentable {
 		nsViewController.previewAnimation = previewAnimation
 		nsViewController.previewImage = previewImage
 
-		///  Feel free to take out this if statement.
-		///  The constant rewinding on setting change just really annoyed me. :)  -mmulet
 		if nsViewController.player.rate != 0 {
 			nsViewController.player.rate = nsViewController.player.rate > 0 ? Float(speed) : -Float(speed)
 		}
@@ -64,14 +62,16 @@ final class TrimmingAVPlayerViewController: NSViewController {
 	// TrimmingAVPlayerViewController+PreviewGenerator
 	private let currentTimeDidChange: ((Double) -> Void)?
 	private var periodicTimeObserver: Any?
-	private var rateObserver: NSKeyValueObservation?
+	private var rateObserver: AnyCancellable?
 	@MainActor
 	var previewViewState = PreviewViewState(previewImage: nil)
 
 	fileprivate var previewAnimation: NSImage? {
 		didSet {
-			/// Only update the previewImage if we are
-			/// playing
+			/**
+			Only update the previewImage if we are
+			playing
+			 */
 			guard player.rate != 0 else {
 				return
 			}
@@ -84,7 +84,9 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 	fileprivate var previewImage: NSImage? {
 		didSet {
-			/// Only assign to the image if we are paused
+			/**
+			 Only assign to the image if we are paused
+			 */
 			guard player.rate == 0 else {
 				return
 			}
@@ -95,11 +97,14 @@ final class TrimmingAVPlayerViewController: NSViewController {
 		}
 	}
 
-	/// On Showing or hiding the preview we
-	/// also have to hide the trim buttons
-	/// because we hide the play button if
-	/// the animation preview is not
-	/// available
+
+	/**
+	 On Showing or hiding the preview we
+	 also have to hide the trim buttons
+	 because we hide the play button if
+	 the animation preview is not
+	 available
+	 */
 	fileprivate var showPreview = false {
 		didSet {
 			playerView.showPreview = self.showPreview
@@ -109,7 +114,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 			if self.showPreview {
 				playerView.contentOverlayView?.addSubview(previewView)
 				playerView.hideTrimButtons()
-			   previewView.constrainEdgesToSuperview() // Ensure it fills the parent view
+			   previewView.constrainEdgesToSuperview()
 			} else {
 				playerView.hideTrimButtons()
 				previewView.removeFromSuperview()
@@ -117,9 +122,12 @@ final class TrimmingAVPlayerViewController: NSViewController {
 		}
 	}
 
-	///Have to update the player views' AnimationBeingGeneratedNow
-	///because it will have to hide the play button if the animation
-	///is unavailable
+
+	/**
+	 Have to update the player views' AnimationBeingGeneratedNow
+	 because it will have to hide the play button if the animation
+	 is unavailable
+	 */
 	fileprivate var animationBeingGeneratedNow = false {
 		didSet {
 			playerView.animationBeingGeneratedNow = self.animationBeingGeneratedNow
@@ -130,7 +138,6 @@ final class TrimmingAVPlayerViewController: NSViewController {
 		}
 	}
 
-	// end TrimmingAVPlayerViewController+PreviewGenerator
 
 
 	var playerView: TrimmingAVPlayerView { view as! TrimmingAVPlayerView }
@@ -194,58 +201,57 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 		super.init(nibName: nil, bundle: nil)
 
-		/**
-		 We have to observe the rate to see whether we should be
-		 showing a still preview at the time you scrub to, or
-		 if we should play a preview of the entire animation.
-		 */
-		rateObserver = player.observe(\.rate, options: [.new, .old]) { [weak self] player, change in
-			guard let self else {
-				return
-			}
-			guard showPreview else {
-				return
-			}
-			/// If Animation is being generated, then
-			/// just show the preview image
-			if animationBeingGeneratedNow {
-				/// Avoid the infinite loop!
-				///  just stop it player.rate is already 0
-				guard change.newValue != 0 else {
+
+		rateObserver = player
+			.publisher(for: \.rate)
+			.receive(on: DispatchQueue.main)
+			.sink { [weak self] newRate in
+				guard let self else {
 					return
 				}
-				player.rate = 0
-				Task{
+				guard self.showPreview else {
+					return
+				}
+				// If animation is being generated, show the preview image
+				if self.animationBeingGeneratedNow {
+					// Avoid infinite loop: stop the player if rate is already 0
+					guard newRate != 0 else {
+						return
+					}
+					self.player.rate = 0
+					Task {
+						@MainActor in
+						self.previewViewState.previewImage = self.previewImage
+					}
+					return
+				}
+
+				let shouldShowAnimation = newRate != 0
+				Task {
 					@MainActor in
-					self.previewViewState.previewImage = self.previewImage
-				}
-
-				return
-			}
-
-			let should_show_animation = change.newValue != 0
-			Task {
-				@MainActor in
-				if should_show_animation {
-					self.previewViewState.previewImage = self.previewAnimation
-				} else {
-					self.previewViewState.previewImage = self.previewImage
+					if shouldShowAnimation {
+						self.previewViewState.previewImage = self.previewAnimation
+					} else {
+						self.previewViewState.previewImage = self.previewImage
+					}
 				}
 			}
-		}
 
-		/// https://developer.apple.com/documentation/avfoundation/monitoring-playback-progress-in-your-app
-		///	 This is where we keep track of how the user scrubbed on the timeline
-		///
-		///  Notice that the interval it set to a large value
-		///  This means that it will provide a callback in 2 cases.
-		///  1. On loop, in which case it will show the first frame (or last
-		///  	if you have bounce enabled)
-		///  2. When manually scrubbing. In which case it will show
-		///  	the frame you click on
-		///
-		///  You can set this to a lower interval (like 0.1) for a live preview
-		///  but performance will suffer
+
+		/**
+		 https://developer.apple.com/documentation/avfoundation/monitoring-playback-progress-in-your-app
+		 This is where we keep track of how the user scrubbed on the timeline
+
+		 Notice that the interval it set to a large value
+		 This means that it will provide a callback in 2 cases.
+		 1. On loop, in which case it will show the first frame (or last
+		 if you have bounce enabled)
+		 2. When manually scrubbing. In which case it will show
+		 the frame you click on
+
+		 You can set this to a lower interval (like 0.1) for a live preview
+		 but performance will suffer
+		 */
 		self.periodicTimeObserver = self.player.addPeriodicTimeObserver(
 			forInterval: CMTime(seconds: 1_000_000.0, preferredTimescale: 600),
 			queue: .main
@@ -266,7 +272,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 		if let periodicTimeObserver {
 			player.removeTimeObserver(periodicTimeObserver)
 		}
-		rateObserver?.invalidate()
+		rateObserver?.cancel()
 	}
 
 	@available(*, unavailable)
@@ -321,10 +327,13 @@ final class TrimmingAVPlayerView: AVPlayerView {
 	private var timeRangeCancellable: AnyCancellable?
 	private var trimmingCancellable: AnyCancellable?
 
-	/// TrimmingAVPlayerView + PreviewGenerator
-	/// These are needed to hide the play button
-	/// when an animation is not yet available
-	/// this is done in hideTrimButtons
+
+	/**
+	 TrimmingAVPlayerView + PreviewGenerator
+	 These are needed to hide the play button
+	 when an animation is not yet available
+	 this is done in hideTrimButtons
+	 */
 	fileprivate var showPreview = false
 	fileprivate var animationBeingGeneratedNow = false
 
@@ -416,21 +425,31 @@ final class TrimmingAVPlayerView: AVPlayerView {
 			}
 
 		if self.showPreview && animationBeingGeneratedNow {
-			/// Hide the play button when the animation is being generated
-			/// Only show it when you can play the animation
+			/**
+			 Hide the play button when the animation is being generated
+			 Only show it when you can play the animation
+			 */
 			superview.subviews
 				.first { $0 != avTrimView }?
 				.subviews
 				.forEach {
-					$0.isHidden = true
+					guard let button = ($0 as? NSButton) else {
+						return
+					}
+					button.isEnabled = false
 				}
 		} else {
-			/// Need to potentially unhide the play button
+			/**
+			 Need to potentially unhide the play button
+			 */
 			superview.subviews
 				.first { $0 != avTrimView }?
 				.subviews
 				.forEach {
-					$0.isHidden = false
+					guard let button = ($0 as? NSButton) else {
+						return
+					}
+					button.isEnabled = true
 				}
 			superview.subviews
 				.first { $0 != avTrimView }?

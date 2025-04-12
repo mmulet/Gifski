@@ -32,11 +32,12 @@ import AVFoundation
 	and the fame you scrubbed may not exist in the
 	output GIF.
 */
-final class PreviewGenerator: ObservableObject {
+@Observable
+final class PreviewGenerator {
 	@MainActor
-	@Published var previewImage: PreviewImage?
+	var previewImage: PreviewImage?
 	@MainActor
-	@Published var imageBeingGeneratedNow = false
+	var imageBeingGeneratedNow = false
 
 	enum GeneratorType {
 		case singleFrame
@@ -66,9 +67,11 @@ final class PreviewGenerator: ObservableObject {
 		case animatedGIF
 	}
 
-	/// NSImages are not Sendable so we will
-	/// just send the Data to the main thread
-	/// and create the image there
+	/**
+	 NSImages are not Sendable so we will
+	 just send the Data to the main thread
+	 and create the image there
+	 */
 	private struct PreviewImageData: Sendable {
 		var imageData: Data
 		var type: ImageDataType
@@ -99,10 +102,13 @@ final class PreviewGenerator: ObservableObject {
 
 	private enum CreatePreviewState {
 		case idle
-		/// If the state is running we may queue the next
-		/// time to preview, which will render after
-		/// we are done. Increase the serial number
-		/// to indicate that a new preview must be drawn
+
+		/**
+		 If the state is running we may queue the next
+		 time to preview, which will render after
+		 we are done. Increase the serial number
+		 / to indicate that a new preview must be drawn
+		 */
 		case running(whatToGenerate: PreviewGeneration,
 					 settingsAtGenerateTime: GIFGenerator.Conversion,
 					 previewSerialNumber: Int
@@ -129,17 +135,22 @@ final class PreviewGenerator: ObservableObject {
 		case no_change
 	}
 
-	/// This function spawns the createPreviewThread if none exists.
-	/// If one does exist, it will add the most recent time to a queue to
-	/// be generated later. It will overwrite the most recent queued item
-	/// so only the most recent time will generate a preview.
+
+	/**
+	 This function spawns the createPreviewThread if none exists.
+	 If one does exist, it will add the most recent time to a queue to
+	 be generated later. It will overwrite the most recent queued item
+	 so only the most recent time will generate a preview.
+	 */
 	@MainActor
 	func onCurrentTimeDidChange(currentTime: Double, conversionSettings: GIFGenerator.Conversion)  {
 		switch type {
 		case .entireAnimation:
-			/// Only create new frames
-			/// on scrub if you are a
-			/// single frames type
+			/**
+			 Only create new frames
+			 on scrub if you are a
+			 single frames type
+			 */
 			return
 		case .singleFrame:
 			break
@@ -188,8 +199,11 @@ final class PreviewGenerator: ObservableObject {
 		case .entireAnimation:
 			whatToGenerate = .entireAnimation
 		case .singleFrame:
-			/// We don't have a preview, so don't
-			/// bother updating nothing
+
+			/**
+			 We don't have a preview, so don't
+			 bother updating nothing
+			 */
 			guard let previewImage else {
 				return
 			}
@@ -209,8 +223,11 @@ final class PreviewGenerator: ObservableObject {
 	}
 
 
-	/// This will use GiFGenerate To generate a new preview image at a particular
-	///  time or of the entire animation
+
+	/**
+	 This will use GiFGenerate To generate a new preview image at a particular
+	 time or of the entire animation
+	 */
 	private func generatePreviewImage(
 		whatToGenerate: PreviewGeneration,
 		settingsAtGenerateTime: GIFGenerator.Conversion,
@@ -224,9 +241,10 @@ final class PreviewGenerator: ObservableObject {
 				return .no_change
 			}
 			let data = try? await GIFGenerator.run(settingsAtGenerateTime) { _ in
-				///no-op
+				/**
+				 no-op
+				 */
 			}
-
 			guard let data
 				   else {
 				return nil
@@ -239,20 +257,28 @@ final class PreviewGenerator: ObservableObject {
 			))
 		case .oneFrame(let previewTimeToGenerate):
 			guard let frameRange = settingsAtGenerateTime.timeRange else {
-				/// Don't have a frame range at all
-				///  don't produce a preview GIF
+				/**
+				 Don't have a frame range at all
+				 don't produce a preview GIF
+				 */
 				return nil
 			}
 			guard let frameRate = settingsAtGenerateTime.frameRate else {
 				return nil
 			}
-			/// We want to generate 1 frame
-			/// we have currentFrameSettings.frameRate frames/second
-			/// or 1/currentFrameSettings.frameRate seconds/frame
-			/// then multiply by 1 frame to the duration of one frame
+			/**
+			 We want to generate 1 frame
+			 we have currentFrameSettings.frameRate frames/second
+			 or 1/currentFrameSettings.frameRate seconds/frame
+			 then multiply by 1 frame to the duration of one frame
+			 */
+
 			let duration_of_one_frame: Double = 1 / (frameRate.toDouble)
-			/// Line up the current time to a frame that will
-			/// be generated the generator
+
+			/**
+			 Line up the current time to a frame that will
+			 be generated the generator
+			 */
 			let frame_number = ((previewTimeToGenerate - frameRange.lowerBound) / duration_of_one_frame).rounded(.down)
 
 			let start = frame_number * duration_of_one_frame + frameRange.lowerBound
@@ -265,19 +291,27 @@ final class PreviewGenerator: ObservableObject {
 				return .no_change
 			}
 			var currentFrameSettings = settingsAtGenerateTime
-			/// Set the frame Rate artificially high
-			/// because the GifGenerator may fail
-			/// to run if near the end and less than
-			/// one frame is pushed through
+
+			/**
+			 Set the frame Rate artificially high
+			 because the GifGenerator may fail
+			 to run if near the end and less than
+			 one frame is pushed through
+			 */
 			currentFrameSettings.frameRate = 18
-			/// Generate an average of 2.5 frames
-			/// GIFGenerator fails if generating only 1
-			/// frame. So le'ts make sure at least 2 frames
-			/// generate
+
+			/**
+			 Generate an average of 2.5 frames
+			 GIFGenerator fails if generating only 1
+			 frame. So le'ts make sure at least 2 frames
+			 generate
+			 */
 			currentFrameSettings.timeRange = start...(start + 2.5 / 18.0)
 
 			let data = try? await GIFGenerator.run(currentFrameSettings) { _ in
-				///no-op
+				/**
+				 no-op
+				 */
 			}
 
 			guard let data else {
@@ -296,21 +330,27 @@ final class PreviewGenerator: ObservableObject {
 		}
 	}
 
-	/// This function runs in a loop to create previews.
-	///  It is intended to run this on a background thread
-	///  using Task(priority: .utility)
+
+	/**
+	 This function runs in a loop to create previews.
+	 It is intended to run this on a background thread
+	 using Task(priority: .utility)
+	 */
 	private func createPreviewBackgroundThreadLoop() async {
-		///
-		/// Loop Explanation:
-		/// Generate the top frame in the queue.
-		/// Then check for additional frames, if there are any
-		/// generate the next frame in the queue, in an infinite
-		/// loop.
+		/**
+		 Loop Explanation:
+		 Generate the top frame in the queue.
+		 Then check for additional frames, if there are any
+		 generate the next frame in the queue, in an infinite
+		 loop.
+		 */
 		while true {
 			let createPreviewStateAtStartOfLoop: CreatePreviewState = self.createPreviewState
 			switch createPreviewStateAtStartOfLoop {
 			case .idle:
-				/// No more work. End the loop.
+				/**
+				 No more work. End the loop.
+				 */
 				return
 			case .running(
 				let whatToGenerate,
@@ -322,15 +362,21 @@ final class PreviewGenerator: ObservableObject {
 					settingsAtGenerateTime: settingsAtGenerateTime,
 					oldPreviewImage: self.previewImage
 				)
-				///This may be different than the start of the loop as we may
-				///have received requests during the time it took to generate
+
+				/**
+				 This may be different than the start of the loop as we may
+				 have received requests during the time it took to generate
+				 */
 				let createPreviewStateAfterGeneratingPreview: CreatePreviewState = self.createPreviewState
 
 				switch createPreviewStateAfterGeneratingPreview {
 				case .idle:
-					/// This case should never happen
-					/// because the only time we set the createPreviewState
-					/// to .idle is in the case below:
+
+					/**
+					 This case should never happen
+					 because the only time we set the createPreviewState
+					 to .idle is in the case below:
+					 */
 					assertionFailure()
 					switch data {
 					case .no_change:
@@ -364,12 +410,16 @@ final class PreviewGenerator: ObservableObject {
 						}
 
 					guard previewIsFinished else {
-						///Preview is not finished
-						///resume the loop and process
-						///the next frame
+						/**
+						 Preview is not finished
+						 resume the loop and process
+						 the next frame
+						 */
 						continue
 					}
-					/// Preview is finished. End the createPreviewFunction
+					/**
+					 Preview is finished. End the createPreviewFunction
+					 */
 					self.createPreviewState = .idle
 					return
 				}

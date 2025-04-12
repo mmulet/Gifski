@@ -21,13 +21,12 @@ struct EditScreen: View {
 	@State private var shouldShow = false
 
 
-	/// EditScreen + PreviewGenerator
 	@State private var currentScrubbedTime: Double = .zero
 	@State private var showPreview = false
-	@StateObject private var singleFramePreviewGenerator = PreviewGenerator(
+	@State private var singleFramePreviewGenerator = PreviewGenerator(
 		type: .singleFrame
 	)
-	@StateObject private var fullAnimationPreviewGenerator = PreviewGenerator(
+	@State private var fullAnimationPreviewGenerator = PreviewGenerator(
 		type: .entireAnimation
 	)
 
@@ -108,8 +107,12 @@ struct EditScreen: View {
 			guard showPreview else {
 				return
 			}
-			/// Force a redraw of the preview on
+
+			/**
+			 Force a redraw of the preview
+			 */
 			onCurrentTimeDidChange(currentTime: self.currentScrubbedTime)
+			self.fullAnimationPreviewGenerator.onSettingsDidChangeGeneratePreview(conversionSettings: conversionSettings)
 		}
 		.alert2(
 			"Reverse Playback Preview Limitation",
@@ -179,7 +182,7 @@ struct EditScreen: View {
 			Spacer()
 			if showPreview && (singleFramePreviewGenerator.imageBeingGeneratedNow || fullAnimationPreviewGenerator.imageBeingGeneratedNow) {
 				ProgressView()
-					.frame(width: 10, height: 10)
+					.frame(width: 1, height: 1)
 			}
 			Toggle("Show Preview", isOn: $showPreview)
 			Button("Convert") {
@@ -659,7 +662,6 @@ private struct LoopSetting: View {
 }
 
 
-///  EditScreen + PreviewGenerator
 extension EditScreen {
 	private func onSettingsDidChange() {
 		guard showPreview else {
@@ -674,11 +676,8 @@ extension EditScreen {
 		guard showPreview else {
 			return
 		}
+
 		self.singleFramePreviewGenerator.onCurrentTimeDidChange(
-			currentTime: currentTime,
-			conversionSettings: conversionSettings
-		)
-		self.fullAnimationPreviewGenerator.onCurrentTimeDidChange(
 			currentTime: currentTime,
 			conversionSettings: conversionSettings
 		)

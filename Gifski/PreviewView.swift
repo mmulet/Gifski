@@ -23,7 +23,6 @@ struct PreviewView: View {
 			VStack {
 				ImageView(image: previewViewState.previewImage ?? NSImage())
 					.scaledToFit()
-				Text("Preview")
 			}
 		}
 	}
