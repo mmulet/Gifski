@@ -54,7 +54,7 @@ private struct _EditScreen: View {
 	@State private var fullPreviewDebouncer = Debouncer(delay: .milliseconds(200))
 
 	@Binding private var outputCropRect: CropRect
-	@State private var exportModifiedVideoState: ExportModifiedVideoView.State = .idle
+	@State private var exportModifiedVideoState = ExportModifiedVideoView.State.idle
 	private var overlay: NSView
 	private let fullPreviewStream: FullPreviewStream
 
@@ -169,13 +169,14 @@ private struct _EditScreen: View {
 		}
 		.onDisappear {
 			appState.onExportAsVideo = nil
+
 			switch exportModifiedVideoState {
 			case .idle, .audioWarning:
 				break
 			case .exporting(let task):
 				task.cancel()
-			case .exported(let uRL):
-				try? FileManager.default.removeItem(at: uRL)
+			case .exported(let url):
+				try? FileManager.default.removeItem(at: url)
 			}
 		}
 		.task {
