@@ -389,43 +389,50 @@ extension GIFGenerator.Conversion {
 
 	/**
 	- Returns: The current scale of the `dimensions` compared to the dimensions of the video track.
-	 */
+	*/
 	var scale: CGSize {
 		get async throws {
-			guard let trackSize = try await trackSize else {
+			guard let trackDimensions = try await trackDimensions else {
 				return .one
 			}
-			guard let dimensions = dimensionsAsSize else {
-				return trackSize
+			guard trackDimensions > 0 else {
+				throw Error.invalidDimensions
 			}
-			return dimensions / trackSize
+			guard let dimensions = dimensionsAsCGSize else {
+				return trackDimensions
+			}
+			let scale = dimensions / trackDimensions
+			guard scale > 0 else {
+				throw Error.invalidScale
+			}
+			return scale
 		}
 	}
 
 	/**
-	- Returns: Dimensions of the first video track
-	 */
-	var trackSize: CGSize? {
+	- Returns: Dimensions of the first video track.
+	*/
+	var trackDimensions: CGSize? {
 		get async throws {
 			try await asset.firstVideoTrack?.dimensions
 		}
 	}
 
-	var dimensionsAsSize: CGSize? {
+	var dimensionsAsCGSize: CGSize? {
 		dimensions.map {
 			.init(width: Double($0.0), height: Double($0.1))
 		}
 	}
 
 	/**
-	The size of the output render without taking crop into account
-	 */
+	The size of the output render without taking crop into account.
+	*/
 	var renderSize: CGSize {
 		get async throws {
-			if let dimensionsAsSize {
-				return dimensionsAsSize
+			if let dimensionsAsCGSize {
+				return dimensionsAsCGSize
 			}
-			guard let trackSize = try await trackSize else {
+			guard let trackSize = try await trackDimensions else {
 				throw Error.invalidDimensions
 			}
 			return trackSize
@@ -434,7 +441,7 @@ extension GIFGenerator.Conversion {
 
 	/**
 	- Returns: Crop rect in pixels, if there is no crop rect then it returns the full render size.
-	 */
+	*/
 	var cropRectInPixels: CGRect {
 		get async throws {
 			(crop ?? .initialCropRect).unnormalize(forDimensions: try await renderSize)
@@ -442,8 +449,8 @@ extension GIFGenerator.Conversion {
 	}
 
 	/**
-	- Returns: The time range used to export the modified video (ie not the GIF export)
-	 */
+	- Returns: The time range used to export the modified video (i.e. not the `.gif` export).
+	*/
 	var exportModifiedVideoTimeRange: CMTimeRange {
 		get async throws {
 			if let timeRange {
@@ -464,6 +471,7 @@ extension GIFGenerator.Conversion {
 
 	enum Error: Swift.Error {
 		case invalidDimensions
+		case invalidScale
 		case noVideoTrack
 	}
 }

@@ -67,7 +67,7 @@ struct PreviewRendererContext {
 	Create a render pass descriptor to match our pipeline. Here we pass in the actual data (i.e. the textures).
 	*/
 	static func makeRenderPassDescriptor(
-		outputTexture: CVMetalTextureRefeference,
+		outputTexture: CVMetalTextureReference,
 		depthTexture: MTLTexture
 	) -> MTLRenderPassDescriptor {
 		let renderPassDescriptor = MTLRenderPassDescriptor()

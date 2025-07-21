@@ -54,7 +54,7 @@ private struct _EditScreen: View {
 	@State private var fullPreviewDebouncer = Debouncer(delay: .milliseconds(200))
 
 	@Binding private var outputCropRect: CropRect
-	@State private var exportModifiedVideoState = ExportModifiedVideoView.State.idle
+	@State private var exportModifiedVideoState = ExportModifiedVideoState.idle
 	private var overlay: NSView
 	private let fullPreviewStream: FullPreviewStream
 
@@ -175,7 +175,7 @@ private struct _EditScreen: View {
 				break
 			case .exporting(let task):
 				task.cancel()
-			case .exported(let url):
+			case .finished(let url):
 				try? FileManager.default.removeItem(at: url)
 			}
 		}
@@ -197,13 +197,13 @@ private struct _EditScreen: View {
 		switch exportModifiedVideoState {
 		case .idle, .audioWarning:
 			break
-		case .exporting, .exported:
-			// If another alert (like bounce warning) occurs when you activate this callback, the filexporter won't show and the state will be stuck on `.exported`. By reassigning the state this will force a swiftUI draw and bring up the file exporter.
+		case .exporting, .finished:
+			// If another alert (like bounce warning) occurs when you activate this callback, the `fileExporter` modifier won't show and the state will be stuck on `.finished`. By reassigning the state this will force a swiftUI draw and bring up the file exporter.
 			exportModifiedVideoState = exportModifiedVideoState
 			return
 		}
 
-		if metadata.originalVideoHasAudio {
+		if metadata.hasAudio {
 			if (SSApp.ranOnce(identifier: "audioTrackExportWarning") {
 				exportModifiedVideoState = .audioWarning
 			}) {
@@ -216,7 +216,7 @@ private struct _EditScreen: View {
 				let outputURL = try await exportModifiedVideo(conversion: conversionSettings)
 				try await MainActor.run {
 					try Task.checkCancellation()
-					exportModifiedVideoState = .exported(outputURL)
+					exportModifiedVideoState = .finished(outputURL)
 				}
 			} catch {
 				if Task.isCancelled || error.isCancelled {

@@ -1364,7 +1364,7 @@ extension AVAsset {
 		let duration: Duration
 		let frameRate: Double
 		let fileSize: Int
-		var originalVideoHasAudio: Bool
+		var hasAudio: Bool
 	}
 
 	var videoMetadata: VideoMetadata? {
@@ -1391,7 +1391,7 @@ extension AVAsset {
 				duration: .seconds(duration.seconds),
 				frameRate: frameRate,
 				fileSize: fileSize,
-				originalVideoHasAudio: hasAudio
+				hasAudio: hasAudio
 			)
 		}
 	}
@@ -1685,10 +1685,10 @@ extension SSApp {
 			execute()
 		}
 	}
-	
+
 	/**
-	Just like run once, but returns true if it ran
-	 */
+	Just like run once, but returns true if it ran.
+	*/
 	static func ranOnce(identifier: String, _ execute: () -> Void) -> Bool {
 		let key = "SS_App_runOnce__\(identifier)"
 
@@ -2146,6 +2146,10 @@ extension CGSize {
 
 	static func / (lhs: Self, rhs: Self) -> Self {
 		.init(width: lhs.width / rhs.width, height: lhs.height / rhs.height)
+	}
+
+	static func > (lhs: Self, rhs: Double) -> Bool {
+		lhs.width > rhs && lhs.height > rhs
 	}
 
 	static let one = Self(widthHeight: 1)
@@ -6225,8 +6229,8 @@ extension CGSize {
 
 /**
 We need to keep a strong reference to the `CVMetalTexture` until the GPU command completes. This struct ensures that the `CVMetalTexture` is not garbage collected as long as the `MTLTexture` is around. [See](https://developer.apple.com/documentation/corevideo/cvmetaltexturecachecreatetexturefromimage(_:_:_:_:_:_:_:_:_:))
- */
-struct CVMetalTextureRefeference {
+*/
+struct CVMetalTextureReference {
 	private let coreVideoTextureReference: CVMetalTexture
 
 	let texture: MTLTexture
@@ -6302,7 +6306,7 @@ extension CVMetalTextureCache {
 		from image: CVPixelBuffer,
 		pixelFormat: MTLPixelFormat,
 		textureAttributes: [String: Any]? = nil // swiftlint:disable:this discouraged_optional_collection
-	) throws(Error) -> CVMetalTextureRefeference {
+	) throws(Error) -> CVMetalTextureReference {
 		var coreVideoTextureReference: CVMetalTexture?
 
 		let result = CVMetalTextureCacheCreateTextureFromImage(

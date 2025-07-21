@@ -147,7 +147,7 @@ enum VideoValidator {
 			)
 		}
 
-		newVideoMetadata.originalVideoHasAudio = oldVideoMetadata.originalVideoHasAudio
+		newVideoMetadata.hasAudio = oldVideoMetadata.hasAudio
 
 		// Trim asset
 		do {

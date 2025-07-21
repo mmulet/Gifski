@@ -2,10 +2,9 @@ import Foundation
 import AVKit
 import SwiftUI
 
-
 struct ExportModifiedVideoView: View {
 	@Environment(AppState.self) private var appState
-	@Binding var state: State
+	@Binding var state: ExportModifiedVideoState
 	let sourceURL: URL
 
 	var body: some View {
@@ -29,14 +28,14 @@ struct ExportModifiedVideoView: View {
 			.fileDialogMessage("Choose where to save the video")
 			.fileDialogConfirmationLabel("Save")
 			.alert2(
-				"Export video Limitation",
+				"Export Video Limitation",
 				message: "Exporting a video with audio is not supported. The audio track will be ignored.",
 				isPresented: isAudioWarningPresented
 			)
 	}
 
 	private var exportableMP4: ExportableMP4? {
-		guard case let .exported(url) = state else {
+		guard case let .finished(url) = state else {
 			return nil
 		}
 		return ExportableMP4(url: url)
@@ -48,14 +47,7 @@ struct ExportModifiedVideoView: View {
 
 	private var isProgressSheetPresented: Binding<Bool> {
 		.init(
-			get: {
-				switch state {
-				case .exporting:
-					true
-				default:
-					false
-				}
-			},
+			get: { state.isExporting },
 			set: {
 				guard !$0,
 					  case let .exporting(task) = state else {
@@ -69,17 +61,10 @@ struct ExportModifiedVideoView: View {
 
 	private var isFileExporterPresented: Binding<Bool> {
 		.init(
-			get: {
-				switch state {
-				case .exported:
-					true
-				default:
-					false
-				}
-			},
+			get: { state.isFinished },
 			set: {
 				guard !$0,
-				   case let .exported(url) = state else {
+				   case let .finished(url) = state else {
 					return
 				}
 				try? FileManager.default.removeItem(at: url)
@@ -90,17 +75,11 @@ struct ExportModifiedVideoView: View {
 
 	private var isAudioWarningPresented: Binding<Bool> {
 		.init(
-			get: {
-				switch state {
-				case .audioWarning:
-					true
-				default:
-					false
-				}
-			},
+			get: { state.isWarning },
 			set: {
 				guard !$0,
-					  case .audioWarning = state else{
+					  state.isWarning else
+				{
 					return
 				}
 				appState.onExportAsVideo?()
@@ -108,20 +87,18 @@ struct ExportModifiedVideoView: View {
 		)
 	}
 
-	enum State {
-		case idle
-		case audioWarning
-		case exporting(Task<Void, Never>)
-		case exported(URL)
-		
-	}
-
 	enum Error: Swift.Error {
+		case unableToCreateExportAtHighestQuality
+		case unableToExportAsset
 		case unableToCreateExportSession
 		case unableToAddCompositionTrack
 
 		var errorDescription: String? {
 			switch self {
+			case .unableToCreateExportAtHighestQuality:
+				"Unable to create an export session at the highest quality."
+			case .unableToExportAsset:
+				"Unable to export the asset because it is not compatible with the current device."
 			case .unableToCreateExportSession:
 				"Unable to create an export session for the video."
 			case .unableToAddCompositionTrack:
@@ -131,10 +108,44 @@ struct ExportModifiedVideoView: View {
 	}
 }
 
+enum ExportModifiedVideoState {
+	case idle
+	case audioWarning
+	case exporting(Task<Void, Never>)
+	case finished(URL)
+
+	var isWarning: Bool {
+		switch self {
+		case .audioWarning:
+			true
+		default:
+			false
+		}
+	}
+
+	var isExporting: Bool {
+		switch self {
+		case .exporting:
+			true
+		default:
+			false
+		}
+	}
+
+	var isFinished: Bool {
+		switch self {
+		case .finished:
+			true
+		default:
+			false
+		}
+	}
+}
+
 /**
- Convert a source video to an `.mp4` using the same scale, speed, and crop as the exported `.gif`
-- Returns: Temporary URL of the exported video
- */
+Convert a source video to an `.mp4` using the same scale, speed, and crop as the exported `.gif`.
+- Returns: Temporary URL of the exported video.
+*/
 func exportModifiedVideo(conversion: GIFGenerator.Conversion) async throws -> URL {
 	let (composition, compositionVideoTrack) = try await createComposition(
 		conversion: conversion
@@ -144,6 +155,15 @@ func exportModifiedVideo(conversion: GIFGenerator.Conversion) async throws -> UR
 		conversion: conversion
 	)
 	let outputURL = FileManager.default.temporaryDirectory.appendingPathComponent( "\(UUID().uuidString).mp4")
+
+	let presets = AVAssetExportSession.allExportPresets()
+	guard presets.contains(AVAssetExportPresetHighestQuality) else {
+		throw ExportModifiedVideoView.Error.unableToCreateExportSession
+	}
+	guard await AVAssetExportSession.compatibility(ofExportPreset: AVAssetExportPresetHighestQuality, with: composition, outputFileType: .mp4) else {
+		throw ExportModifiedVideoView.Error.unableToCreateExportSession
+	}
+
 	guard let exportSession = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
 		throw ExportModifiedVideoView.Error.unableToCreateExportSession
 	}
@@ -153,8 +173,8 @@ func exportModifiedVideo(conversion: GIFGenerator.Conversion) async throws -> UR
 }
 
 /**
-Creates the mutable composition along with the video track inserted
- */
+Creates the mutable composition along with the video track inserted.
+*/
 private func createComposition(
 	conversion: GIFGenerator.Conversion,
 ) async throws -> (AVMutableComposition, AVMutableCompositionTrack) {
@@ -174,8 +194,8 @@ private func createComposition(
 }
 
 /**
-Create an  `AVMutableVideoComposition` that wll scale, translate, and crop the `compositionVideoTrack`
- */
+Create an `AVMutableVideoComposition` that will scale, translate, and crop the `compositionVideoTrack`.
+*/
 private func createVideoComposition(
 	compositionVideoTrack: AVMutableCompositionTrack,
 	conversion: GIFGenerator.Conversion
@@ -187,7 +207,7 @@ private func createVideoComposition(
 	videoComposition.frameDuration = try await compositionVideoTrack.load(.minFrameDuration)
 
 	let instruction = AVMutableVideoCompositionInstruction()
-	// The instruction time range must be greater than or equal to the video and there is no penality for making it longer, so add 1.0 second to the duration just to be safe
+	// The instruction time range must be greater than or equal to the video and there is no penalty for making it longer, so add 1.0 second to the duration just to be safe
 	instruction.timeRange = CMTimeRange(start: .zero, duration: .init(seconds: try await conversion.videoWithoutBounceDuration.toTimeInterval + 1.0, preferredTimescale: .video))
 
 	let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
