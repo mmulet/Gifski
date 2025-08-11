@@ -47,10 +47,15 @@ struct ExportModifiedVideoView: View {
 
 	private var isProgressSheetPresented: Binding<Bool> {
 		.init(
-			get: { state.isExporting },
+			get: {
+				guard case let .exporting(_, videoIsOverTwentySeconds) = state else {
+					return false
+				}
+				return videoIsOverTwentySeconds
+			},
 			set: {
 				guard !$0,
-					  case let .exporting(task) = state else {
+					  case let .exporting(task, _) = state else {
 					return
 				}
 				task.cancel()
@@ -111,7 +116,7 @@ struct ExportModifiedVideoView: View {
 enum ExportModifiedVideoState {
 	case idle
 	case audioWarning
-	case exporting(Task<Void, Never>)
+	case exporting(Task<Void, Never>, videoIsOverTwentySeconds: Bool)
 	case finished(URL)
 
 	var isWarning: Bool {

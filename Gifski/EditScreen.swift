@@ -42,6 +42,7 @@ private struct _EditScreen: View {
 	@State private var url: URL
 	@State private var asset: AVAsset
 	@State private var modifiedAsset: AVAsset
+	@State private var modifiedAssetTimeRange: CMTimeRange?
 	@State private var metadata: AVAsset.VideoMetadata
 	@State private var estimatedFileSizeModel = EstimatedFileSizeModel()
 	@State private var timeRange: ClosedRange<Double>?
@@ -173,7 +174,7 @@ private struct _EditScreen: View {
 			switch exportModifiedVideoState {
 			case .idle, .audioWarning:
 				break
-			case .exporting(let task):
+			case .exporting(let task, _):
 				task.cancel()
 			case .finished(let url):
 				try? FileManager.default.removeItem(at: url)
@@ -211,23 +212,26 @@ private struct _EditScreen: View {
 			}
 		}
 
-		exportModifiedVideoState = .exporting(Task {
-			do {
-				let outputURL = try await exportModifiedVideo(conversion: conversionSettings)
-				try await MainActor.run {
-					try Task.checkCancellation()
-					exportModifiedVideoState = .finished(outputURL)
+		exportModifiedVideoState = .exporting(
+			Task {
+				do {
+					let outputURL = try await exportModifiedVideo(conversion: conversionSettings)
+					try await MainActor.run {
+						try Task.checkCancellation()
+						exportModifiedVideoState = .finished(outputURL)
+					}
+				} catch {
+					if Task.isCancelled || error.isCancelled {
+						return
+					}
+					await MainActor.run {
+						exportModifiedVideoState = .idle
+						appState.error = error
+					}
 				}
-			} catch {
-				if Task.isCancelled || error.isCancelled {
-					return
-				}
-				await MainActor.run {
-					exportModifiedVideoState = .idle
-					appState.error = error
-				}
-			}
-		})
+			},
+			videoIsOverTwentySeconds: conversionSettings.gifDuration(assetTimeRange: modifiedAssetTimeRange).toTimeInterval > 20
+		)
 	}
 
 	private func updatePreviewOnSettingsChange() {
@@ -258,6 +262,7 @@ private struct _EditScreen: View {
 
 			let changedSpeedAsset = try await asset.firstVideoTrack?.extractToNewAssetAndChangeSpeed(to: Defaults[.outputSpeed]) ?? modifiedAsset
 			modifiedAsset = try await PreviewableComposition(extractPreviewableCompositionFrom: changedSpeedAsset)
+			modifiedAssetTimeRange = try await changedSpeedAsset.firstVideoTrack?.load(.timeRange)
 
 			estimatedFileSizeModel.updateEstimate()
 			updatePreviewOnSettingsChange()

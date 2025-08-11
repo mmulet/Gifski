@@ -366,19 +366,22 @@ extension GIFGenerator.Conversion {
 	var gifDuration: Duration {
 		get async throws {
 			// TODO: Make this lazy so it's only used for fallback.
-			let fallbackRange = try await asset.firstVideoTrack?.load(.timeRange).range
-
-			guard let duration = (timeRange ?? fallbackRange)?.length else {
-				return .zero
-			}
-
-			// TODO: Do this when Swift supports async in `??`.
-			//				guard let duration = (timeRange ?? asset.firstVideoTrack?.timeRange.range)?.length else {
-			//					return .zero
-			//				}
-
-			return .seconds(bounce ? (duration * 2) : duration)
+			let fallbackRange = try await asset.firstVideoTrack?.load(.timeRange)
+			return gifDuration(assetTimeRange: fallbackRange)
 		}
+	}
+
+	func gifDuration(assetTimeRange fallbackRange: CMTimeRange?) -> Duration {
+		guard let duration = (timeRange ?? fallbackRange?.range)?.length else {
+			return .zero
+		}
+
+		// TODO: Do this when Swift supports async in `??`.
+		//				guard let duration = (timeRange ?? asset.firstVideoTrack?.timeRange.range)?.length else {
+		//					return .zero
+		//				}
+
+		return .seconds(bounce ? (duration * 2) : duration)
 	}
 
 	var videoWithoutBounceDuration: Duration {
