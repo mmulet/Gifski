@@ -56,6 +56,7 @@ private struct _EditScreen: View {
 
 	@Binding private var outputCropRect: CropRect
 	@State private var exportModifiedVideoState = ExportModifiedVideoState.idle
+	@State private var isExportModifiedVideoAudioWarningPresented = false
 	private var overlay: NSView
 	private let fullPreviewStream: FullPreviewStream
 
@@ -83,7 +84,8 @@ private struct _EditScreen: View {
 			bottomBar
 			ExportModifiedVideoView(
 				state: $exportModifiedVideoState,
-				sourceURL: url
+				sourceURL: url,
+				isAudioWarningPresented: $isExportModifiedVideoAudioWarningPresented
 			)
 		}
 		.background(.ultraThickMaterial)
@@ -172,7 +174,7 @@ private struct _EditScreen: View {
 			appState.onExportAsVideo = nil
 
 			switch exportModifiedVideoState {
-			case .idle, .audioWarning:
+			case .idle:
 				break
 			case .exporting(let task, _):
 				task.cancel()
@@ -196,7 +198,7 @@ private struct _EditScreen: View {
 
 	private func onExportAsVideo() {
 		switch exportModifiedVideoState {
-		case .idle, .audioWarning:
+		case .idle:
 			break
 		case .exporting, .finished:
 			// If another alert (like bounce warning) occurs when you activate this callback, the `fileExporter` modifier won't show and the state will be stuck on `.finished`. By reassigning the state this will force a swiftUI draw and bring up the file exporter.
@@ -205,10 +207,8 @@ private struct _EditScreen: View {
 		}
 
 		if metadata.hasAudio {
-			if (SSApp.ranOnce(identifier: "audioTrackExportWarning") {
-				exportModifiedVideoState = .audioWarning
-			}) {
-				return
+			SSApp.runOnce(identifier: "audioTrackExportWarning") {
+				isExportModifiedVideoAudioWarningPresented = true
 			}
 		}
 

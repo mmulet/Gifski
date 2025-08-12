@@ -1685,20 +1685,6 @@ extension SSApp {
 			execute()
 		}
 	}
-
-	/**
-	Just like run once, but returns true if it ran.
-	*/
-	static func ranOnce(identifier: String, _ execute: () -> Void) -> Bool {
-		let key = "SS_App_runOnce__\(identifier)"
-
-		if !UserDefaults.standard.bool(forKey: key) {
-			UserDefaults.standard.set(true, forKey: key)
-			execute()
-			return true
-		}
-		return false
-	}
 }
 
 extension SSApp {

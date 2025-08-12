@@ -7,6 +7,8 @@ struct ExportModifiedVideoView: View {
 	@Binding var state: ExportModifiedVideoState
 	let sourceURL: URL
 
+	@Binding var isAudioWarningPresented: Bool
+
 	var body: some View {
 		ZStack{}
 			.sheet(isPresented: isProgressSheetPresented) {
@@ -30,7 +32,7 @@ struct ExportModifiedVideoView: View {
 			.alert2(
 				"Export Video Limitation",
 				message: "Exporting a video with audio is not supported. The audio track will be ignored.",
-				isPresented: isAudioWarningPresented
+				isPresented: $isAudioWarningPresented
 			)
 	}
 
@@ -48,7 +50,8 @@ struct ExportModifiedVideoView: View {
 	private var isProgressSheetPresented: Binding<Bool> {
 		.init(
 			get: {
-				guard case let .exporting(_, videoIsOverTwentySeconds) = state else {
+				guard !isAudioWarningPresented,
+					  case let .exporting(_, videoIsOverTwentySeconds) = state else {
 					return false
 				}
 				return videoIsOverTwentySeconds
@@ -66,7 +69,7 @@ struct ExportModifiedVideoView: View {
 
 	private var isFileExporterPresented: Binding<Bool> {
 		.init(
-			get: { state.isFinished },
+			get: { state.isFinished && !isAudioWarningPresented },
 			set: {
 				guard !$0,
 				   case let .finished(url) = state else {
@@ -78,19 +81,6 @@ struct ExportModifiedVideoView: View {
 		)
 	}
 
-	private var isAudioWarningPresented: Binding<Bool> {
-		.init(
-			get: { state.isWarning },
-			set: {
-				guard !$0,
-					  state.isWarning else
-				{
-					return
-				}
-				appState.onExportAsVideo?()
-			}
-		)
-	}
 
 	enum Error: Swift.Error {
 		case unableToCreateExportAtHighestQuality
@@ -112,6 +102,49 @@ struct ExportModifiedVideoView: View {
 		}
 	}
 }
+
+
+enum ExportModifiedVideoState: Equatable {
+	case idle
+	case exporting(Task<Void, Never>, videoIsOverTwentySeconds: Bool)
+	case finished(URL)
+
+	var shouldShowProgress: Bool {
+		switch self {
+		case .idle, .finished:
+			false
+		case .exporting(_, videoIsOverTwentySeconds: let videoIsOverTwentySeconds):
+			videoIsOverTwentySeconds
+		}
+	}
+	var shouldShowFileExporter: Bool {
+		switch self {
+		case .idle, .exporting:
+			false
+		case .finished:
+			true
+		}
+	}
+
+	var isExporting: Bool {
+		switch self {
+		case .exporting:
+			true
+		default:
+			false
+		}
+	}
+
+	var isFinished: Bool {
+		switch self {
+		case .finished:
+			true
+		default:
+			false
+		}
+	}
+}
+
 
 /**
 Convert a source video to an `.mp4` using the same scale, speed, and crop as the exported `.gif`.
