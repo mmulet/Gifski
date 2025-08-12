@@ -113,40 +113,6 @@ struct ExportModifiedVideoView: View {
 	}
 }
 
-enum ExportModifiedVideoState {
-	case idle
-	case audioWarning
-	case exporting(Task<Void, Never>, videoIsOverTwentySeconds: Bool)
-	case finished(URL)
-
-	var isWarning: Bool {
-		switch self {
-		case .audioWarning:
-			true
-		default:
-			false
-		}
-	}
-
-	var isExporting: Bool {
-		switch self {
-		case .exporting:
-			true
-		default:
-			false
-		}
-	}
-
-	var isFinished: Bool {
-		switch self {
-		case .finished:
-			true
-		default:
-			false
-		}
-	}
-}
-
 /**
 Convert a source video to an `.mp4` using the same scale, speed, and crop as the exported `.gif`.
 - Returns: Temporary URL of the exported video.
