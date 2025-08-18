@@ -6598,3 +6598,17 @@ extension CGAffineTransform {
 		translatedBy(x: point.x, y: point.y)
 	}
 }
+
+extension ClosedRange<Double> {
+	public static func - (lhs: ClosedRange<Double>, rhs: Double) -> ClosedRange<Double> {
+		(lhs.lowerBound - rhs) ... (lhs.upperBound - rhs)
+	}
+
+	public static func + (lhs: ClosedRange<Double>, rhs: Double) -> ClosedRange<Double> {
+		(lhs.lowerBound + rhs) ... (lhs.upperBound + rhs)
+	}
+
+	public static func * (lhs: ClosedRange<Double>, rhs: Double) -> ClosedRange<Double> {
+		(lhs.lowerBound * rhs) ... (lhs.upperBound * rhs)
+	}
+}

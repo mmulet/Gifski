@@ -19,6 +19,8 @@ extension CropSettings {
 			return image
 		}
 
+
+
 		return image.cropping(to: crop.unnormalize(forDimensions: (image.width, image.height)))
 	}
 

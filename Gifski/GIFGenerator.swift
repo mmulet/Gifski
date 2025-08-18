@@ -402,7 +402,7 @@ extension GIFGenerator.Conversion {
 				throw Error.invalidDimensions
 			}
 			guard let dimensions = dimensionsAsCGSize else {
-				return trackDimensions
+				return .one
 			}
 			let scale = dimensions / trackDimensions
 			guard scale > 0 else {

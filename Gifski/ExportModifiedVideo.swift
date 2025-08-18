@@ -83,15 +83,12 @@ struct ExportModifiedVideoView: View {
 
 
 	enum Error: Swift.Error {
-		case unableToCreateExportAtHighestQuality
 		case unableToExportAsset
 		case unableToCreateExportSession
 		case unableToAddCompositionTrack
 
 		var errorDescription: String? {
 			switch self {
-			case .unableToCreateExportAtHighestQuality:
-				"Unable to create an export session at the highest quality."
 			case .unableToExportAsset:
 				"Unable to export the asset because it is not compatible with the current device."
 			case .unableToCreateExportSession:
@@ -183,17 +180,20 @@ private func createComposition(
 	conversion: GIFGenerator.Conversion,
 ) async throws -> (AVMutableComposition, AVMutableCompositionTrack) {
 	let composition = AVMutableComposition()
+
 	guard let compositionTrack = composition.addMutableTrack(
 		withMediaType: .video,
 		preferredTrackID: kCMPersistentTrackID_Invalid
 	) else {
 		throw ExportModifiedVideoView.Error.unableToAddCompositionTrack
 	}
+	let videoTrack = try await conversion.firstVideoTrack
 	try compositionTrack.insertTimeRange(
 		try await conversion.exportModifiedVideoTimeRange,
-		of: try await conversion.firstVideoTrack,
+		of: videoTrack,
 		at: .zero
 	)
+	compositionTrack.preferredTransform = try await videoTrack.load(.preferredTransform)
 	return (composition, compositionTrack)
 }
 
@@ -204,6 +204,8 @@ private func createVideoComposition(
 	compositionVideoTrack: AVMutableCompositionTrack,
 	conversion: GIFGenerator.Conversion
 ) async throws -> AVMutableVideoComposition {
+	let preferredTransform = try await compositionVideoTrack.load(.preferredTransform)
+
 	let videoComposition = AVMutableVideoComposition()
 
 	let cropRectInPixels = try await conversion.cropRectInPixels
@@ -216,7 +218,14 @@ private func createVideoComposition(
 
 	let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
 	let scale = try await conversion.scale
-	layerInstruction.setTransform(.init(scaledBy: scale).translated(by: -cropRectInPixels.origin / scale), at: .zero)
+	var transform = preferredTransform
+	transform = transform.scaledBy(x: scale.width, y: scale.height)
+	transform = transform.translated(by:
+		-cropRectInPixels.origin / scale,
+    )
+
+	layerInstruction.setTransform(transform, at: .zero)
+	// layerInstruction.setTransform(.init(scaledBy: scale).translated(by: -cropRectInPixels.origin / scale), at: .zero)
 	instruction.layerInstructions = [layerInstruction]
 
 	videoComposition.instructions = [instruction]

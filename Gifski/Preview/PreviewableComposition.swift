@@ -21,13 +21,14 @@ final class PreviewableComposition: AVMutableComposition {
 			throw Error.assetHasNoTracks
 		}
 
-		let (trackSize, frameDuration) = try await assetTrack.load(.naturalSize, .minFrameDuration)
+		let (trackSize, frameDuration, preferredTransform) = try await assetTrack.load(.naturalSize, .minFrameDuration, .preferredTransform)
 
 		guard
 			let compositionOriginalTrack = addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
 		else {
 			throw Error.couldNotCreateTracks
 		}
+		compositionOriginalTrack.preferredTransform = preferredTransform
 
 		try compositionOriginalTrack.insertTimeRange(
 			CMTimeRange(start: .videoZero, duration: duration),

@@ -230,7 +230,7 @@ private struct _EditScreen: View {
 					}
 				}
 			},
-			videoIsOverTwentySeconds: conversionSettings.gifDuration(assetTimeRange: modifiedAssetTimeRange).toTimeInterval > 20
+			videoIsOverTwentySeconds: conversionSettings.gifDuration(assetTimeRange: modifiedAssetTimeRange) > .seconds(20)
 		)
 	}
 

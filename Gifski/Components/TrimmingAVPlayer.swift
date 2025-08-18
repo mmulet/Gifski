@@ -98,6 +98,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 	private let controlsStyle: AVPlayerViewControlsStyle
 	private let timeRangeDidChange: ((ClosedRange<Double>) -> Void)?
 	private var cancellables = Set<AnyCancellable>()
+	private var currentItemDurationRange: ClosedRange<Double>?
 
 	fileprivate var overlay: NSView? {
 		didSet {
@@ -272,9 +273,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 
 				playerView.setupTrimmingObserver()
 
-				if let durationRange = $0.durationRange {
-					timeRangeDidChange?(durationRange)
-				}
+				onNewDurationRange(durationRange: $0.durationRange)
 
 				// This is here as it needs to be refreshed when the current item changes.
 				playerView.observeTrimmedTimeRange { [weak self] timeRange in
@@ -283,6 +282,31 @@ final class TrimmingAVPlayerViewController: NSViewController {
 				}
 			}
 			.store(in: &cancellables)
+	}
+	func onNewDurationRange(durationRange newItemDurationRange: ClosedRange<Double>?) {
+		guard let newItemDurationRange else {
+			currentItemDurationRange = nil
+			return
+		}
+		defer {
+			currentItemDurationRange = newItemDurationRange
+		}
+		guard let timeRange,
+			  let currentItemDurationRange else {
+			timeRangeDidChange?(newItemDurationRange)
+			return
+		}
+		// convert timeRange from oldItemDurationRange to new duration range
+		// necessary for when the video changes speed.
+		let speed: Double = {
+			guard currentItemDurationRange.length != 0 else {
+				return 1.0
+			}
+			return newItemDurationRange.length / currentItemDurationRange.length
+		}()
+		let newTimeRange = (timeRange - currentItemDurationRange.lowerBound) * speed + newItemDurationRange.lowerBound
+		self.timeRange = newTimeRange
+		timeRangeDidChange?(newTimeRange)
 	}
 }
 
