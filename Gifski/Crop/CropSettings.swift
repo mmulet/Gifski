@@ -3,6 +3,7 @@ import AVKit
 
 protocol CropSettings {
 	var dimensions: (width: Int, height: Int)? { get }
+	var trackPreferredTransform: CGAffineTransform? { get }
 	var crop: CropRect? { get }
 }
 
@@ -15,17 +16,26 @@ extension CropSettings {
 	If the rect parameter defines an area that is not in the image, it returns nil: https://developer.apple.com/documentation/coregraphics/cgimage/1454683-cropping
 	*/
 	func croppedImage(image: CGImage) -> CGImage? {
-		guard let crop else {
+		guard crop != nil else {
 			return image
 		}
+		let transformedCrop = unormalziedCropFor(sizeInPreferredTransformationSpace: .init(width: image.width, height: image.height))
+		return image.cropping(to: transformedCrop)
+	}
 
-
-
-		return image.cropping(to: crop.unnormalize(forDimensions: (image.width, image.height)))
+	func unormalziedCropFor(sizeInPreferredTransformationSpace prefferedSize: CGSize) -> CGRect {
+		let cropRect = crop ?? .initialCropRect
+		guard let trackPreferredTransform else {
+			return cropRect.unnormalize(forDimensions: prefferedSize)
+		}
+		let origninalSize = CGRect(origin: .zero, size: prefferedSize)
+			.applying(trackPreferredTransform.inverted()).size
+		let originalCropSize = cropRect.unnormalize(forDimensions: origninalSize)
+		return originalCropSize.applying(trackPreferredTransform)
 	}
 
 	var croppedOutputDimensions: (width: Int, height: Int)? {
-		guard let crop else {
+		guard crop != nil else {
 			return dimensions
 		}
 
@@ -33,11 +43,8 @@ extension CropSettings {
 			return nil
 		}
 
-		let cropInPixels = crop.unnormalize(forDimensions: dimensions)
-
-		return (
-			cropInPixels.width.toIntAndClampingIfNeeded,
-			cropInPixels.height.toIntAndClampingIfNeeded
-		)
+		let outputDimensions = unormalziedCropFor(sizeInPreferredTransformationSpace: .init(width: dimensions.width, height: dimensions.height))
+		return (outputDimensions.width.toIntAndClampingIfNeeded,
+				outputDimensions.height.toIntAndClampingIfNeeded)
 	}
 }

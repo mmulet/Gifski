@@ -193,7 +193,9 @@ private func createComposition(
 		of: videoTrack,
 		at: .zero
 	)
-	compositionTrack.preferredTransform = try await videoTrack.load(.preferredTransform)
+	if let preferredTransform = conversion.trackPreferredTransform {
+		compositionTrack.preferredTransform = preferredTransform
+	}
 	return (composition, compositionTrack)
 }
 
@@ -204,12 +206,9 @@ private func createVideoComposition(
 	compositionVideoTrack: AVMutableCompositionTrack,
 	conversion: GIFGenerator.Conversion
 ) async throws -> AVMutableVideoComposition {
-	let preferredTransform = try await compositionVideoTrack.load(.preferredTransform)
-
 	let videoComposition = AVMutableVideoComposition()
 
-	let cropRectInPixels = try await conversion.cropRectInPixels
-	videoComposition.renderSize = cropRectInPixels.size
+	videoComposition.renderSize = try await conversion.exportModifiedRenderRect.size
 	videoComposition.frameDuration = try await compositionVideoTrack.load(.minFrameDuration)
 
 	let instruction = AVMutableVideoCompositionInstruction()
@@ -217,16 +216,17 @@ private func createVideoComposition(
 	instruction.timeRange = CMTimeRange(start: .zero, duration: .init(seconds: try await conversion.videoWithoutBounceDuration.toTimeInterval + 1.0, preferredTimescale: .video))
 
 	let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: compositionVideoTrack)
-	let scale = try await conversion.scale
-	var transform = preferredTransform
-	transform = transform.scaledBy(x: scale.width, y: scale.height)
-	transform = transform.translated(by:
-		-cropRectInPixels.origin / scale,
-    )
-
-	layerInstruction.setTransform(transform, at: .zero)
-	// layerInstruction.setTransform(.init(scaledBy: scale).translated(by: -cropRectInPixels.origin / scale), at: .zero)
+	let cropRectAppliedToNaturalSize = try await conversion.cropRectAppliedToNaturalSize
+	let preferredTransform = conversion.trackPreferredTransform ?? .identity
+	let scaleTransform = CGAffineTransform(scaledBy: try await conversion.scale)
+	let scaledCropRect = cropRectAppliedToNaturalSize.applying(scaleTransform)
+	let cropRectAfterPreferred = scaledCropRect.applying(preferredTransform)
+	// now let's place the crop rect in the top left corner
+	let translateTransform = CGAffineTransform(translationX: -cropRectAfterPreferred.minX, y: -cropRectAfterPreferred.minY)
+	layerInstruction.setCropRectangle(cropRectAppliedToNaturalSize, at: .zero)
+	layerInstruction.setTransform(scaleTransform.concatenating(preferredTransform).concatenating(translateTransform), at: .zero)
 	instruction.layerInstructions = [layerInstruction]
+
 
 	videoComposition.instructions = [instruction]
 	return videoComposition

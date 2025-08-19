@@ -359,6 +359,7 @@ extension GIFGenerator {
 		var loop: Gifski.Loop
 		var bounce: Bool
 		var crop: CropRect?
+		var trackPreferredTransform: CGAffineTransform?
 	}
 }
 
@@ -413,7 +414,7 @@ extension GIFGenerator.Conversion {
 	}
 
 	/**
-	- Returns: Dimensions of the first video track.
+	- Returns: Dimensions of the first video track after applying preferredTransform
 	*/
 	var trackDimensions: CGSize? {
 		get async throws {
@@ -448,6 +449,19 @@ extension GIFGenerator.Conversion {
 	var cropRectInPixels: CGRect {
 		get async throws {
 			(crop ?? .initialCropRect).unnormalize(forDimensions: try await renderSize)
+		}
+	}
+
+	var cropRectAppliedToNaturalSize: CGRect {
+		get async throws {
+			let size = try await asset.firstVideoTrack?.load(.naturalSize) ?? .one
+			return (crop ?? .initialCropRect).unnormalize(forDimensions: size)
+		}
+	}
+
+	var exportModifiedRenderRect: CGRect {
+		get async throws {
+			 unormalziedCropFor(sizeInPreferredTransformationSpace: try await renderSize)
 		}
 	}
 

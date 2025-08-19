@@ -1288,6 +1288,11 @@ extension AVAsset {
 			try await fileSize.formatted(.byteCount(style: .file))
 		}
 	}
+	var trackPreferredTransform: CGAffineTransform? {
+		get async throws {
+			try await firstVideoTrack?.load(.preferredTransform)
+		}
+	}
 }
 
 
@@ -1365,6 +1370,7 @@ extension AVAsset {
 		let frameRate: Double
 		let fileSize: Int
 		var hasAudio: Bool
+		let trackPreferredTransform: CGAffineTransform?
 	}
 
 	var videoMetadata: VideoMetadata? {
@@ -1373,6 +1379,7 @@ extension AVAsset {
 			async let frameRateResult = frameRate
 			async let fileSizeResult = fileSize
 			async let durationResult = load(.duration)
+			async let trackPreferredTransformResult = trackPreferredTransform
 			async let hasAudioResult = firstAudioTrack != nil
 
 			guard
@@ -1385,13 +1392,15 @@ extension AVAsset {
 			let fileSize = try await fileSizeResult
 			let duration = try await durationResult
 			let hasAudio = try await hasAudioResult
+			let trackPreferredTransform = try await trackPreferredTransformResult
 
 			return .init(
 				dimensions: dimensions,
 				duration: .seconds(duration.seconds),
 				frameRate: frameRate,
 				fileSize: fileSize,
-				hasAudio: hasAudio
+				hasAudio: hasAudio,
+				trackPreferredTransform: trackPreferredTransform
 			)
 		}
 	}

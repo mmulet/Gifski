@@ -414,7 +414,7 @@ struct ConvertIntent: AppIntent, ProgressReportingIntent {
 		videoAsset: AVAsset,
 		videoURL: URL,
 		metaDatDimensions: CGSize
-	) throws -> GIFGenerator.Conversion {
+	) async throws -> GIFGenerator.Conversion {
 		let dimensions = dimensions(metadataDimensions: metaDatDimensions)
 
 		return GIFGenerator.Conversion(
@@ -426,7 +426,8 @@ struct ConvertIntent: AppIntent, ProgressReportingIntent {
 			frameRate: frameRate,
 			loop: loop ? .forever : .never,
 			bounce: bounce,
-			crop: try crop?.cropRect(forDimensions: dimensions ?? metaDatDimensions.toInt)
+			crop: try crop?.cropRect(forDimensions: dimensions ?? metaDatDimensions.toInt),
+			trackPreferredTransform: try? await videoAsset.firstVideoTrack?.load(.preferredTransform)
 		)
 	}
 

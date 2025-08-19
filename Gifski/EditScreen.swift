@@ -377,7 +377,8 @@ private struct _EditScreen: View {
 				return .forever
 			}(),
 			bounce: bounceGIF,
-			crop: outputCropRect
+			crop: outputCropRect,
+			trackPreferredTransform: metadata.trackPreferredTransform
 		)
 	}
 

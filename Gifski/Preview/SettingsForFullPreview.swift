@@ -87,6 +87,9 @@ struct SettingsForFullPreview: Equatable, Sendable {
 		var dimensions: (width: Int, height: Int)? {
 			settings.dimensions
 		}
+		var trackPreferredTransform: CGAffineTransform? {
+			settings.trackPreferredTransform
+		}
 
 		var crop: CropRect? {
 			settings.crop
@@ -98,6 +101,7 @@ struct SettingsForFullPreview: Equatable, Sendable {
 			let dimensions: (width: Int, height: Int)?
 			let frameRate: Int?
 			let crop: CropRect?
+			let trackPreferredTransform: CGAffineTransform?
 
 			var loop: Gifski.Loop {
 				.never
@@ -116,7 +120,8 @@ struct SettingsForFullPreview: Equatable, Sendable {
 				quality: conversion.quality,
 				dimensions: conversion.dimensions,
 				frameRate: conversion.frameRate,
-				crop: conversion.crop
+				crop: conversion.crop,
+				trackPreferredTransform: conversion.trackPreferredTransform
 			)
 		}
 
@@ -130,7 +135,8 @@ struct SettingsForFullPreview: Equatable, Sendable {
 				frameRate: settings.frameRate,
 				loop: settings.loop,
 				bounce: settings.bounce,
-				crop: settings.crop
+				crop: settings.crop,
+				trackPreferredTransform: settings.trackPreferredTransform
 			)
 		}
 	}
