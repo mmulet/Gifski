@@ -190,7 +190,6 @@ struct CreateCropIntent: AppIntent {
 	var y: Int
 
 	@Parameter(
-		title: "Width",
 		description: "The width of the crop in pixels.",
 		default: 1,
 		inclusiveRange: (1, 100_000)
@@ -198,7 +197,6 @@ struct CreateCropIntent: AppIntent {
 	var width: Int
 
 	@Parameter(
-		title: "Height",
 		description: "The height of the crop in pixels.",
 		default: 1,
 		inclusiveRange: (1, 100_000)

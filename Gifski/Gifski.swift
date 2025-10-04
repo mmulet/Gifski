@@ -29,7 +29,7 @@ final class Gifski {
 			case .never:
 				return -1
 			case .count(let count):
-				assert(count > 0) // swiftlint:disable:this empty_count
+				assert(count > 0)
 				return count
 			}
 		}()

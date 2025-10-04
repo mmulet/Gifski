@@ -109,9 +109,16 @@ private struct _EditScreen: View {
 							}
 						}
 				}
-				Toggle(isOn: appState.toggleMode(mode: .preview)) {
-					Label("Preview", systemImage: appState.shouldShowPreview && fullPreviewState.canShowPreview ? "eye" : "eye.slash")
-				}
+				Toggle(
+					"Preview",
+					systemImage: appState.shouldShowPreview && fullPreviewState.canShowPreview ? "eye" : "eye.slash",
+					isOn: appState.toggleMode(mode: .preview)
+				)
+			}
+			// We have to use this as the glass background is buggy.
+			.ss_sharedBackgroundVisibility_hidden()
+			if #available(macOS 26, *) {
+				ToolbarSpacer(.fixed)
 			}
 			ToolbarItemGroup {
 				CropToolbarItems(
@@ -121,6 +128,7 @@ private struct _EditScreen: View {
 				)
 				.focusSection()
 			}
+			.ss_sharedBackgroundVisibility_hidden()
 		}
 		.onReceive(Defaults.publisher(.outputSpeed, options: []).removeDuplicates().debounce(for: .seconds(0.4), scheduler: DispatchQueue.main)) { _ in
 			Task {
@@ -476,7 +484,7 @@ private struct DimensionsSetting: View {
 				HStack {
 					switch dimensionsType {
 					case .pixels:
-						let textFieldWidth = 42.0
+						let textFieldWidth = OS.isMacOS26OrLater ? 44 : 42.0
 						HStack(spacing: 4) {
 							LabeledContent("Width") {
 								IntTextField(
@@ -531,7 +539,7 @@ private struct DimensionsSetting: View {
 									}
 								}
 							)
-							.frame(width: 32)
+							.frame(width: OS.isMacOS26OrLater ? 36 : 32)
 							.onChange(of: percent) {
 								applyPercent()
 							}

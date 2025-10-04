@@ -120,6 +120,7 @@
 				"",
 				"echo \"success: $ACTION of $SCRIPT_OUTPUT_FILE_0 for $CARGO_XCODE_TARGET_TRIPLES\"",
 				"",
+				"",
 			);
 		};
 /* End PBXBuildRule section */
@@ -210,7 +211,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					CA007E48158959EA34BF617B = {
 						CreatedOnToolsVersion = 9.2;
@@ -399,6 +400,7 @@
 				PRODUCT_NAME = gifski;
 				RUSTUP_TOOLCHAIN = "";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Release;
@@ -449,6 +451,7 @@
 				PRODUCT_NAME = gifski;
 				RUSTUP_TOOLCHAIN = "";
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTS_MACCATALYST = YES;
 			};
 			name = Debug;

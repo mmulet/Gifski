@@ -290,7 +290,7 @@ private struct CustomPixelField: View {
 			}
 		)
 		.onChange(of: warningCount) {} // Noop. Having the `warningCount` in the view hierarchy causes SwiftUI to refresh the `IntTextField` whenever an invalid value is entered even if we have already set the pixel size to `Self.minValue`. Can't use `.id()` modifier because it will close the popover.
-		.frame(width: 42.0)
+		.frame(width: OS.isMacOS26OrLater ? 46 : 42.0)
 		.popover2(isPresented: $showWarning) {
 			VStack {
 				Text("Value must be in the range \(minMax.lowerBound) to \(minMax.upperBound)")
@@ -347,7 +347,7 @@ private struct CustomAspectField: View {
 			alignment: side == \.width ? .right : .left,
 			font: .fieldFont
 		)
-		.frame(width: 26.0)
+		.frame(width: OS.isMacOS26OrLater ? 30 : 26)
 	}
 
 	var minMax: ClosedRange<Int> {

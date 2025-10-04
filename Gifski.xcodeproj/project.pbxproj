@@ -28,10 +28,11 @@
 		E37F68E42ACADA40007F1A7F /* EditScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37F68E32ACADA40007F1A7F /* EditScreen.swift */; };
 		E3908B7426754568000723A7 /* EstimatedFileSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3908B7326754568000723A7 /* EstimatedFileSize.swift */; };
 		E3961F802AC9F2A700708EB7 /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3961F7F2AC9F2A700708EB7 /* Intents.swift */; };
-		E3998CF22ACD7148009F8117 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E3998CF12ACD7148009F8117 /* Sentry */; };
 		E3A6BD112245345C00F62256 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3A6BD102245345C00F62256 /* Constants.swift */; };
 		E3AE62871E5CD2F300035A2F /* App.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3AE62861E5CD2F300035A2F /* App.swift */; };
 		E3AE62891E5CD2F300035A2F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E3AE62881E5CD2F300035A2F /* Assets.xcassets */; };
+		E3AE7E9B2E8AE01F00D22FF8 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E3AE7E9A2E8AE01F00D22FF8 /* Sentry */; };
+		E3AE7E9D2E8AE0A100D22FF8 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = E3AE7E9C2E8AE0A100D22FF8 /* AppIcon.icon */; };
 		E3C3DB4F203F154300CB8BB9 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = E3C3DB4E203F154300CB8BB9 /* Credits.rtf */; };
 		E3D08F6E1E5D7BFD00F465DF /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3D08F6D1E5D7BFD00F465DF /* Utilities.swift */; };
 		E3E9A7D6256EBE0800E2B9FD /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E9A7D5256EBE0800E2B9FD /* Utilities.swift */; };
@@ -105,6 +106,7 @@
 		E3AE62861E5CD2F300035A2F /* App.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = App.swift; sourceTree = "<group>"; usesTabs = 1; };
 		E3AE62881E5CD2F300035A2F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E3AE628D1E5CD2F300035A2F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		E3AE7E9C2E8AE0A100D22FF8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		E3BF14CC1E5CD5A30049FD4B /* Gifski.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Gifski.entitlements; sourceTree = "<group>"; };
 		E3C3DB4E203F154300CB8BB9 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		E3D08F6D1E5D7BFD00F465DF /* Utilities.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; lineEnding = 0; path = Utilities.swift; sourceTree = "<group>"; usesTabs = 1; };
@@ -143,8 +145,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E3AE7E9B2E8AE01F00D22FF8 /* Sentry in Frameworks */,
 				E31054142DCBEBA1008B7E7F /* libgifski_static.a in Frameworks */,
-				E3998CF22ACD7148009F8117 /* Sentry in Frameworks */,
 				E36BD7A52B9E2C2400B8D86C /* ExtendedAttributes in Frameworks */,
 				E3339E932395766800303839 /* Defaults in Frameworks */,
 				E3339E9D2395789500303839 /* DockProgress in Frameworks */,
@@ -176,6 +178,7 @@
 		E356A15D21028942000148AD /* Other */ = {
 			isa = PBXGroup;
 			children = (
+				E3AE7E9C2E8AE0A100D22FF8 /* AppIcon.icon */,
 				E3FD6190201BCBC30087160A /* Gifski-Bridging-Header.h */,
 				E304EB8725F3A4D2003BCE1F /* gifski.h */,
 				E3C3DB4E203F154300CB8BB9 /* Credits.rtf */,
@@ -290,8 +293,8 @@
 			packageProductDependencies = (
 				E3339E922395766800303839 /* Defaults */,
 				E3339E9C2395789500303839 /* DockProgress */,
-				E3998CF12ACD7148009F8117 /* Sentry */,
 				E36BD7A42B9E2C2400B8D86C /* ExtendedAttributes */,
+				E3AE7E9A2E8AE01F00D22FF8 /* Sentry */,
 			);
 			productName = Gifski;
 			productReference = E3AE62831E5CD2F300035A2F /* Gifski.app */;
@@ -305,7 +308,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastSwiftUpdateCheck = 1100;
-				LastUpgradeCheck = 1630;
+				LastUpgradeCheck = 2600;
 				ORGANIZATIONNAME = "Sindre Sorhus";
 				TargetAttributes = {
 					0E79251A2329BDBE00058B94 = {
@@ -380,6 +383,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E3AE62891E5CD2F300035A2F /* Assets.xcassets in Resources */,
+				E3AE7E9D2E8AE0A100D22FF8 /* AppIcon.icon in Resources */,
 				E31A4F3124AD36870097B1A5 /* InternetAccessPolicy.json in Resources */,
 				E3C3DB4F203F154300CB8BB9 /* Credits.rtf in Resources */,
 			);
@@ -586,6 +590,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -645,6 +650,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 			};
@@ -661,7 +667,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = YG56YK5RN5;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -697,7 +706,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = YG56YK5RN5;
+				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -806,7 +818,7 @@
 			package = E36BD7A32B9E2C1600B8D86C /* XCRemoteSwiftPackageReference "ExtendedAttributes" */;
 			productName = ExtendedAttributes;
 		};
-		E3998CF12ACD7148009F8117 /* Sentry */ = {
+		E3AE7E9A2E8AE01F00D22FF8 /* Sentry */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = E3998CF02ACD7148009F8117 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
 			productName = Sentry;

@@ -125,7 +125,7 @@ extension NSView {
 struct SendFeedbackButton: View {
 	var body: some View {
 		Link(
-			"Feedback & Support",
+			"Support & Feedback",
 			systemImage: "exclamationmark.bubble",
 			destination: SSApp.appFeedbackUrl()
 		)
@@ -3814,9 +3814,9 @@ extension OperatingSystem {
 	static let isMacOrVision = isMacOS || isVisionOS
 	static let isIOSOrVision = isIOS || isVisionOS
 
-	static let isMacOS16OrLater: Bool = {
+	static let isMacOS26OrLater: Bool = {
 		#if os(macOS)
-		if #available(macOS 16, *) {
+		if #available(macOS 26, *) {
 			return true
 		}
 
@@ -3826,9 +3826,9 @@ extension OperatingSystem {
 		#endif
 	}()
 
-	static let isMacOS15OrLater: Bool = {
+	static let isMacOS27OrLater: Bool = {
 		#if os(macOS)
-		if #available(macOS 15, *) {
+		if #available(macOS 27, *) {
 			return true
 		}
 
@@ -6619,5 +6619,16 @@ extension ClosedRange<Double> {
 
 	public static func * (lhs: ClosedRange<Double>, rhs: Double) -> ClosedRange<Double> {
 		(lhs.lowerBound * rhs) ... (lhs.upperBound * rhs)
+	}
+}
+
+
+extension ToolbarContent {
+	nonisolated func ss_sharedBackgroundVisibility_hidden() -> some ToolbarContent {
+		if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+			return sharedBackgroundVisibility(.hidden)
+		}
+
+		return self
 	}
 }

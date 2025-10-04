@@ -129,12 +129,16 @@ struct CropOverlayView: View {
 						return
 					}
 
-					if let windowIsMovable {
-						window?.isMovableByWindowBackground = windowIsMovable
+					// Defer window property modifications to avoid circular updates during view lifecycle
+					DispatchQueue.main.async {
+						if let windowIsMovable {
+							window?.isMovableByWindowBackground = windowIsMovable
+						}
+
+						windowIsMovable = newWindow?.isMovableByWindowBackground
+						newWindow?.isMovableByWindowBackground = false
 					}
 
-					windowIsMovable = newWindow?.isMovableByWindowBackground
-					newWindow?.isMovableByWindowBackground = false
 					window = newWindow
 				}
 			)

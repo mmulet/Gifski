@@ -86,6 +86,7 @@ struct MainScreen: View {
 		}
 		.toolbar {
 			Color.clear
+				.frame(width: 0, height: 0)
 		}
 		// `.materialActiveAppearance` does not currently work here. Remove `.windowIsVibrant` when it does.
 //		.containerBackground(.thinMaterial.materialActiveAppearance(.active), for: .window)

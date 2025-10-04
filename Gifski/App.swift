@@ -22,7 +22,7 @@ struct AppMain: App {
 		.handlesExternalEvents(matching: []) // Makes sure it does not open a new window when dragging files onto the Dock icon.
 		.commands {
 			CommandGroup(replacing: .newItem) {
-				Button("Open…") {
+				Button("Open…", systemImage: "arrow.up.forward.square") {
 					appState.isFileImporterPresented = true
 				}
 				.keyboardShortcut("o")
@@ -36,18 +36,38 @@ struct AppMain: App {
 				.disabled(appState.onExportAsVideo == nil)
 			}
 			CommandGroup(replacing: .textEditing) {
-				Toggle("Preview", isOn: appState.toggleMode(mode: .preview))
-					.keyboardShortcut("p", modifiers: [.command, .shift])
-					.disabled(!appState.isOnEditScreen)
-					.help("Preview is only available when editing a video")
-				Toggle("Crop", isOn: appState.toggleMode(mode: .editCrop))
-					.keyboardShortcut("c", modifiers: [.command, .shift])
-					.disabled(!appState.isOnEditScreen)
+				Toggle(
+					"Preview",
+					systemImage: "eye",
+					isOn: appState.toggleMode(mode: .preview)
+				)
+				.keyboardShortcut("p", modifiers: [.command, .shift])
+				.disabled(!appState.isOnEditScreen)
+				.help("Preview is only available when editing a video")
+				Toggle(
+					"Crop",
+					systemImage: "crop",
+					isOn: appState.toggleMode(mode: .editCrop)
+				)
+				.keyboardShortcut("c", modifiers: [.command, .shift])
+				.disabled(!appState.isOnEditScreen)
 			}
 			CommandGroup(replacing: .help) {
-				Link("Website", destination: "https://sindresorhus.com/Gifski")
-				Link("Source Code", destination: "https://github.com/sindresorhus/Gifski")
-				Link("Gifski Library", destination: "https://github.com/ImageOptim/gifski")
+				Link(
+					"Website",
+					systemImage: "safari",
+					destination: "https://sindresorhus.com/Gifski"
+				)
+				Link(
+					"Source Code",
+					systemImage: "chevron.left.forwardslash.chevron.right",
+					destination: "https://github.com/sindresorhus/Gifski"
+				)
+				Link(
+					"Gifski Library",
+					systemImage: "shippingbox",
+					destination: "https://github.com/ImageOptim/gifski"
+				)
 				Divider()
 				RateOnAppStoreButton(appStoreID: "1351639930")
 				ShareAppButton(appStoreID: "1351639930")

@@ -40,32 +40,20 @@ extension PreviewRenderer {
 		source: SendableTextureSource,
 		options: [MTKTextureLoader.Option: Any]? = nil // swiftlint:disable:this discouraged_optional_collection
 	) async throws -> SendableTexture {
-		try await withCheckedThrowingContinuation { continuation in
-			// Use the callback version of `newTexture` so that Swift 6 will compile.
-			let callback: MTKTextureLoader.Callback = { texture, error in
-				guard let texture else {
-					continuation.resume(throwing: error ?? PreviewRenderer.Error.failedToMakeSendableTexture)
-					return
-				}
-
-				continuation.resume(returning: SendableTexture(texture: texture))
-			}
-
-			switch source {
-			case .data(let data):
-				textureLoader.newTexture(
-					data: data,
-					options: options,
-					completionHandler: callback
-				)
-			case .image(let image):
-				textureLoader.newTexture(
-					cgImage: image,
-					options: options,
-					completionHandler: callback
-				)
-			}
+		let texture = switch source {
+		case .data(let data):
+			try await textureLoader.newTexture(
+				data: data,
+				options: options
+			)
+		case .image(let image):
+			try await textureLoader.newTexture(
+				cgImage: image,
+				options: options
+			)
 		}
+
+		return .init(texture: texture)
 	}
 
 	/**
@@ -83,6 +71,7 @@ extension PreviewRenderer {
 	func convertToASTCTexture(cgImage: CGImage) throws -> SendableTexture {
 		let astcData = try cgImage.convertToData(
 			withNewType: "org.khronos.astc",
+			// TODO: Use https://developer.apple.com/documentation/imageio/kcgimagepropertyastcblocksize8x8?changes=lat_7_3 when targeting macOS 26.
 			addOptions: ["kCGImagePropertyASTCBlockSize": 0x88]
 		)
 

@@ -83,6 +83,7 @@ struct CompletedScreen: View {
 				.font(.system(weight: .medium, design: .rounded))
 				.foregroundStyle(.secondary)
 			}
+			.ss_sharedBackgroundVisibility_hidden()
 			ToolbarItem {
 				Spacer()
 			}
