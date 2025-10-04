@@ -19,18 +19,25 @@ extension CropSettings {
 		guard crop != nil else {
 			return image
 		}
-		let transformedCrop = unormalziedCropFor(sizeInPreferredTransformationSpace: .init(width: image.width, height: image.height))
+		let transformedCrop = unnormalizedCropRect(sizeInPreferredTransformationSpace: .init(width: image.width, height: image.height))
 		return image.cropping(to: transformedCrop)
 	}
 
-	func unormalziedCropFor(sizeInPreferredTransformationSpace prefferedSize: CGSize) -> CGRect {
-		let cropRect = crop ?? .initialCropRect
-		guard let trackPreferredTransform else {
-			return cropRect.unnormalize(forDimensions: prefferedSize)
+	func unnormalizedCropRect(sizeInPreferredTransformationSpace preferredSize: CGSize) -> CGRect {
+		guard let cropRect = crop else {
+			guard let trackPreferredTransform else {
+				return .init(origin: .zero, size: preferredSize)
+			}
+			let originalSize = CGRect(origin: .zero, size: preferredSize)
+				.applying(trackPreferredTransform.inverted()).size
+			return .init(origin: .zero, size: originalSize).applying(trackPreferredTransform)
 		}
-		let origninalSize = CGRect(origin: .zero, size: prefferedSize)
+		guard let trackPreferredTransform else {
+			return cropRect.unnormalize(forDimensions: preferredSize)
+		}
+		let originalSize = CGRect(origin: .zero, size: preferredSize)
 			.applying(trackPreferredTransform.inverted()).size
-		let originalCropSize = cropRect.unnormalize(forDimensions: origninalSize)
+		let originalCropSize = cropRect.unnormalize(forDimensions: originalSize)
 		return originalCropSize.applying(trackPreferredTransform)
 	}
 
@@ -43,7 +50,7 @@ extension CropSettings {
 			return nil
 		}
 
-		let outputDimensions = unormalziedCropFor(sizeInPreferredTransformationSpace: .init(width: dimensions.width, height: dimensions.height))
+		let outputDimensions = unnormalizedCropRect(sizeInPreferredTransformationSpace: .init(width: dimensions.width, height: dimensions.height))
 		return (outputDimensions.width.toIntAndClampingIfNeeded,
 				outputDimensions.height.toIntAndClampingIfNeeded)
 	}

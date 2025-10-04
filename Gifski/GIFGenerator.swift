@@ -372,7 +372,7 @@ extension GIFGenerator.Conversion {
 		}
 	}
 
-	func gifDuration(assetTimeRange fallbackRange: CMTimeRange?) -> Duration {
+	func gifDuration(assetTimeRange fallbackRange: CMTimeRange?, withBounce: Bool = true) -> Duration {
 		guard let duration = (timeRange ?? fallbackRange?.range)?.length else {
 			return .zero
 		}
@@ -381,8 +381,8 @@ extension GIFGenerator.Conversion {
 		//				guard let duration = (timeRange ?? asset.firstVideoTrack?.timeRange.range)?.length else {
 		//					return .zero
 		//				}
-
-		return .seconds(bounce ? (duration * 2) : duration)
+		
+		return .seconds(withBounce && bounce ? (duration * 2) : duration)
 	}
 
 	var videoWithoutBounceDuration: Duration {
@@ -461,7 +461,7 @@ extension GIFGenerator.Conversion {
 
 	var exportModifiedRenderRect: CGRect {
 		get async throws {
-			 unormalziedCropFor(sizeInPreferredTransformationSpace: try await renderSize)
+			 unnormalizedCropRect(sizeInPreferredTransformationSpace: try await renderSize)
 		}
 	}
 

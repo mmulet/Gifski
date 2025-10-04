@@ -28,9 +28,9 @@ final class Gifski {
 				return 0
 			case .never:
 				return -1
-			case .count(let count):
-				assert(count > 0)
-				return count
+			case .count(let the_count):
+				assert(the_count > 0)
+				return the_count
 			}
 		}()
 

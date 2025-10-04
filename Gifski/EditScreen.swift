@@ -238,7 +238,7 @@ private struct _EditScreen: View {
 					}
 				}
 			},
-			videoIsOverTwentySeconds: conversionSettings.gifDuration(assetTimeRange: modifiedAssetTimeRange) > .seconds(20)
+			videoIsOverTwentySeconds: conversionSettings.gifDuration(assetTimeRange: modifiedAssetTimeRange, withBounce: false) > .seconds(20)
 		)
 	}
 

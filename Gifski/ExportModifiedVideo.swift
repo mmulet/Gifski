@@ -168,6 +168,7 @@ func exportModifiedVideo(conversion: GIFGenerator.Conversion) async throws -> UR
 	guard let exportSession = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetHighestQuality) else {
 		throw ExportModifiedVideoView.Error.unableToCreateExportSession
 	}
+	exportSession.shouldOptimizeForNetworkUse = true
 	exportSession.videoComposition = videoComposition
 	try await exportSession.export(to: outputURL, as: .mp4)
 	return outputURL
