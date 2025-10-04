@@ -297,7 +297,7 @@ final class TrimmingAVPlayerViewController: NSViewController {
 			timeRangeDidChange?(newItemDurationRange)
 			return
 		}
-		// convert timeRange from oldItemDurationRange to new duration range
+		// Convert `timeRange` from `oldItemDurationRange` to new duration range
 		// necessary for when the video changes speed.
 		let speed: Double = {
 			guard currentItemDurationRange.length != 0 else {

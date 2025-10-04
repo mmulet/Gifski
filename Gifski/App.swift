@@ -29,10 +29,10 @@ struct AppMain: App {
 				.disabled(appState.isConverting)
 			}
 			CommandGroup(replacing: .importExport) {
-				Button("Export as Video…") {
+				Button("Export as Video…", systemImage: "square.and.arrow.up") {
 					appState.onExportAsVideo?()
 				}
-				.keyboardShortcut("e", modifiers: [.command])
+				.keyboardShortcut("e")
 				.disabled(appState.onExportAsVideo == nil)
 			}
 			CommandGroup(replacing: .textEditing) {
