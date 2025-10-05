@@ -24,19 +24,19 @@ extension CropSettings {
 	}
 
 	func unnormalizedCropRect(sizeInPreferredTransformationSpace preferredSize: CGSize) -> CGRect {
-		guard let cropRect = crop else {
-			guard let trackPreferredTransform else {
+
+		guard let trackPreferredTransform else {
+			guard let cropRect = crop else {
 				return .init(origin: .zero, size: preferredSize)
 			}
-			let originalSize = CGRect(origin: .zero, size: preferredSize)
-				.applying(trackPreferredTransform.inverted()).size
-			return .init(origin: .zero, size: originalSize).applying(trackPreferredTransform)
-		}
-		guard let trackPreferredTransform else {
 			return cropRect.unnormalize(forDimensions: preferredSize)
 		}
+
 		let originalSize = CGRect(origin: .zero, size: preferredSize)
 			.applying(trackPreferredTransform.inverted()).size
+		guard let cropRect = crop else {
+			return .init(origin: .zero, size: originalSize).applying(trackPreferredTransform)
+		}
 		let originalCropSize = cropRect.unnormalize(forDimensions: originalSize)
 		return originalCropSize.applying(trackPreferredTransform)
 	}
