@@ -81,7 +81,7 @@ final class PreviewVideoCompositor: NSObject, AVVideoCompositing {
 	]
 
 	func renderContextChanged(_ newRenderContext: AVVideoCompositionRenderContext) {
-		 // no-op
+		// no-op
 	}
 }
 

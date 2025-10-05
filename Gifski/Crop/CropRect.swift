@@ -134,9 +134,9 @@ extension CropRect {
 	Adjusts the crop rect to fit a specified aspect ratio inside the current rect and scaling down if necessary to ensure it remains within the given video dimensions.
 
 	- Parameters:
-	 - aspectWidth: The width of the desired aspect ratio.
-	 - aspectHeight: The height of the desired aspect ratio.
-	 - dimensions: The dimensions of the video in pixels.
+	- aspectWidth: The width of the desired aspect ratio.
+	- aspectHeight: The height of the desired aspect ratio.
+	- dimensions: The dimensions of the video in pixels.
 
 	- Returns: A new `CropRect` adjusted to the specified aspect ratio and constrained within the video dimensions.
 	*/

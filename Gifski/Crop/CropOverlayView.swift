@@ -96,14 +96,14 @@ struct CropOverlayView: View {
 						assert(window == nil)
 					}
 					.accessHostingWindow { window in
-						 /**
-						 When view disappears this is never called.
-						 */
+						/**
+						When view disappears this is never called.
+						*/
 					}
 					.onChange(of: window) { old, new in
-						 /**
-						 When the view disappears this is never called.
-						 */
+						/**
+						When the view disappears this is never called.
+						*/
 					}
 			}
 		}

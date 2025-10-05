@@ -50,15 +50,17 @@ struct ExportModifiedVideoView: View {
 	private var isProgressSheetPresented: Binding<Bool> {
 		.init(
 			get: {
-				guard !isAudioWarningPresented,
-					  case let .exporting(_, videoIsOverTwentySeconds) = state else {
+				guard
+					!isAudioWarningPresented,
+					case let .exporting(_, videoIsOverTwentySeconds) = state else {
 					return false
 				}
 				return videoIsOverTwentySeconds
 			},
 			set: {
-				guard !$0,
-					  case let .exporting(task, _) = state else {
+				guard
+					!$0,
+					case let .exporting(task, _) = state else {
 					return
 				}
 				task.cancel()
@@ -71,8 +73,9 @@ struct ExportModifiedVideoView: View {
 		.init(
 			get: { state.isFinished && !isAudioWarningPresented },
 			set: {
-				guard !$0,
-				   case let .finished(url) = state else {
+				guard
+					$0,
+					case let .finished(url) = state else {
 					return
 				}
 				try? FileManager.default.removeItem(at: url)

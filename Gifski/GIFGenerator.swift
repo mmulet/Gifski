@@ -461,7 +461,7 @@ extension GIFGenerator.Conversion {
 
 	var exportModifiedRenderRect: CGRect {
 		get async throws {
-			 unnormalizedCropRect(sizeInPreferredTransformationSpace: try await renderSize)
+			unnormalizedCropRect(sizeInPreferredTransformationSpace: try await renderSize)
 		}
 	}
 

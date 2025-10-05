@@ -291,8 +291,9 @@ final class TrimmingAVPlayerViewController: NSViewController {
 		defer {
 			currentItemDurationRange = newItemDurationRange
 		}
-		guard let timeRange,
-			  let currentItemDurationRange else {
+		guard
+			let timeRange,
+			let currentItemDurationRange else {
 			self.timeRange = newItemDurationRange
 			timeRangeDidChange?(newItemDurationRange)
 			return

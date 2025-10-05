@@ -59,6 +59,8 @@ private struct _EditScreen: View {
 	@State private var isExportModifiedVideoAudioWarningPresented = false
 	private var overlay: NSView
 	private let fullPreviewStream: FullPreviewStream
+	@State private var lastSpeed: Double?
+
 
 	init(
 		url: URL,
@@ -130,9 +132,11 @@ private struct _EditScreen: View {
 			}
 			.ss_sharedBackgroundVisibility_hidden()
 		}
-		.onReceive(Defaults.publisher(.outputSpeed, options: []).removeDuplicates().debounce(for: .seconds(0.4), scheduler: DispatchQueue.main)) { _ in
-			Task {
-				await setSpeed()
+		.onReceive(Defaults.publisher(.outputSpeed, options: [])) { _ in
+			Debouncer.debounce(delay: .seconds(0.4)) {
+				Task {
+					await setSpeed()
+				}
 			}
 		}
 		// We cannot use `Defaults.publisher(.outputSpeed, options: [])` without the `options` as it causes some weird glitches.
@@ -266,6 +270,10 @@ private struct _EditScreen: View {
 
 	private func setSpeed() async {
 		do {
+			if Defaults[.outputSpeed] == lastSpeed {
+				return
+			}
+			lastSpeed = Defaults[.outputSpeed]
 			// We could have set the `rate` of the player instead of modifying the asset, but it's just easier to modify the asset as then it matches what we want to generate. Otherwise, we would have to translate trimming ranges to the correct speed, etc.
 
 			let changedSpeedAsset = try await asset.firstVideoTrack?.extractToNewAssetAndChangeSpeed(to: Defaults[.outputSpeed]) ?? modifiedAsset
