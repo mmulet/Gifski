@@ -381,7 +381,6 @@ extension GIFGenerator.Conversion {
 		//				guard let duration = (timeRange ?? asset.firstVideoTrack?.timeRange.range)?.length else {
 		//					return .zero
 		//				}
-		
 		return .seconds(withBounce && bounce ? (duration * 2) : duration)
 	}
 

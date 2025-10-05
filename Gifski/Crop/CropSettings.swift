@@ -24,7 +24,6 @@ extension CropSettings {
 	}
 
 	func unnormalizedCropRect(sizeInPreferredTransformationSpace preferredSize: CGSize) -> CGRect {
-
 		guard let trackPreferredTransform else {
 			guard let cropRect = crop else {
 				return .init(origin: .zero, size: preferredSize)
